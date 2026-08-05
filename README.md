@@ -1,5 +1,9 @@
 # scroll-scrub-hero
 
+![A pool being built as you scroll — the camera holds still while the yard transforms](docs/demo-hero.gif)
+
+<sub>The Pools Pavers & Patios hero, scrubbing. Bare grass to filled pool, driven entirely by scroll position — 246 WebP frames on a canvas, no video element.</sub>
+
 Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
 bare yard becomes a finished pool, empty room becomes a staged interior, raw stock becomes a
 machined part. The camera holds still; the subject changes.
@@ -170,3 +174,12 @@ More detail lives in `references/prompting.md` (getting good frames) and
 ## Licence / attribution
 
 Use it on client work freely. If it's useful, a mention is appreciated but not required.
+
+---
+
+## Related
+
+If you want the *other* kind of scroll hero — a camera that flies continuously through an
+invented 3D world rather than a locked camera watching a real place change — see
+[oso95/scroll-world](https://github.com/oso95/scroll-world) (MIT). Different technique,
+different generator (Higgsfield), and genuinely complementary to this one.
