@@ -1,5 +1,11 @@
 # scroll-scrub-hero
 
+![Five scroll-scrub heroes playing one after another](docs/examples-reel.gif)
+
+<sub>Five heroes built with this technique, scrubbing back to back — Pools Pavers &amp; Patios,
+Abracadabra, T. Jones Landscaping, AFS, JP Works. Real recordings driven at a constant scroll
+rate, not highlight edits. Measurements and case studies in <a href="examples/">examples/</a>.</sub>
+
 Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
 bare yard becomes a finished pool, empty room becomes a staged interior, raw stock becomes a
 machined part. The camera holds still; the subject changes.
