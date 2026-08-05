@@ -1,0 +1,15 @@
+# Run artefacts — these are per-project and often large or paid-for
+.scrub-hero/
+keyframes/
+segments/
+storyboard.json
+*.mp4
+*_state.json
+
+# Never commit a key
+.env
+.env.*
+
+node_modules/
+.DS_Store
+Thumbs.db
