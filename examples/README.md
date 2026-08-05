@@ -1,7 +1,7 @@
 # Examples
 
-Four scroll-scrub heroes shipped on real client sites, measured. The reel at the top of the repo
-README plays the first three back to back.
+Three scroll-scrub heroes shipped on real client sites, measured. The reel at the top of the
+repo README plays the first two back to back.
 
 The point of putting them side by side is the **weight column**. Same technique, same engine,
 and a 4× spread in bytes per frame — which is entirely a function of decisions made at
@@ -11,7 +11,6 @@ generation time, not of anything the page does.
 |---|---:|---:|---:|---|---|
 | [Pools Pavers & Patios](pools-pavers-patios.md) | 246 | 29.5 MB | 123 | 960×960 | The full six-stage build. The flagship. |
 | [Abracadabra](#abracadabra) | 149 | 12.7 MB | 88 | 1080×1348 | Portrait, narrative rather than process. |
-| [T. Jones Landscaping](#t-jones-landscaping) | 126 | 18.2 MB | 148 | 1400×788 | A virtual camera pan inside a locked frame. |
 | [Piccs Pools](#piccs-pools) | 246 | 87.5 MB | 364 | 1920×1920 | What happens when nobody watches the budget. |
 
 Frames themselves are not committed — they are client imagery, they are tens of megabytes, and
@@ -36,23 +35,6 @@ photograph.
 **88 KB/frame at 1080 wide** is the number to notice. Illustration compresses better than
 photography — flat areas and clean line work are cheap in WebP. If your subject is drawn rather
 than photographed, expect to land well under the 123 KB/frame a photographic sequence costs.
-
-## T. Jones Landscaping
-
-**126 frames · 18.2 MB · 148 KB/frame · 1400×788**
-
-A lawn-care service. The camera is locked, as always — but this build adds a **virtual camera
-pan**: the canvas painter offsets its source rectangle per frame, following the subject inside
-the frame rather than showing a static crop.
-
-That is worth understanding as a technique. The generated footage kept the worker near the edge
-of frame for long stretches, which on a phone meant cropping him out entirely. Rather than
-regenerate, the painter tracks a per-frame focus point and shifts the crop to keep the subject
-in view. It costs nothing at generation time and rescues footage that would otherwise be unusable
-in portrait.
-
-At 148 KB/frame this is the most expensive per frame of the non-outliers — outdoor greenery with
-fine texture is the hardest thing here to compress.
 
 ## Piccs Pools
 
