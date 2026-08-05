@@ -165,6 +165,7 @@ estimate and wait for confirmation before spending.
 More detail lives in `references/prompting.md` (getting good frames) and
 `references/hero-wiring.md` (getting it into a page).
 
-## Licence / attribution
+## Licence
 
-Use it on client work freely. If it's useful, a mention is appreciated but not required.
+MIT — see [LICENSE](LICENSE). Use it on client work freely, commercial or otherwise. If it is
+useful, a mention is appreciated but not required.
