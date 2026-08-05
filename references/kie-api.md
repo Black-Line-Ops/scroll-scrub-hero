@@ -113,13 +113,18 @@ frames need, so downscaling hides any softness.
 ```json
 { "prompt": "max 500 chars in single-shot mode",
   "image_urls": ["<first frame>", "<last frame>"],
-  "duration": 5,
+  "duration": "5",
   "aspect_ratio": "16:9",
   "mode": "pro",
-  "sound": false }
+  "sound": false,
+  "multi_shots": false }
 ```
 
-- `duration` accepts 3–15 seconds.
+- **`duration` is a STRING, not a number.** The schema declares it as an enum of `"3"`…`"15"`
+  and the official example sends `"5"`. Passing the integer `5` fails validation with a 422 —
+  which is an easy bug to ship, because everything else in the payload is naturally typed.
+- **Send `multi_shots: false` explicitly.** The spec lists it among the required input fields
+  even for a single-shot render.
 - `mode` is `std` (1280×720), `pro` (1920×1080) or `4K` (3840×2160) at 16:9.
 - `image_urls` order is **[first, last]**. With images supplied, `aspect_ratio` becomes
   advisory — the model adapts to the images.
@@ -144,7 +149,21 @@ arrives JSON-encoded. `JSON.parse` it, then read `resultUrls`.
 `recordInfo` with the saved taskId before creating a replacement, or you are billed twice.
 `tween.mjs` deliberately writes every taskId to `segments/_state.json` for this reason.
 
-**Uploads expire in 24 h.** Long-running or resumed sessions need re-uploads.
+**Uploads expire in 24 h; generated results are kept 14 days.** Long-running or resumed
+sessions need re-uploads, and nothing kie.ai holds is durable storage — download during the run.
+
+**`duration` is a string.** See above. This is the single most likely thing to fail on a first
+integration, and the 422 it produces does not name the offending field.
+
+**Error codes worth recognising.** They arrive as a body `code`, not an HTTP status:
+`401` bad key · `402` **insufficient credits** · `422` validation · `429` rate limited ·
+`433` sub-key limit · `455` maintenance · `500` server · `501` generation failed ·
+`505` feature disabled. `kie.mjs` maps these to readable messages; 402 in particular is worth
+recognising instantly, because it means nothing was generated and nothing was charged.
+
+**Where to check spend.** Per-task credit consumption is on the task detail (`creditsConsumed`)
+and in the dashboard at kie.ai/logs, which is the source of truth if a bill looks wrong. Current
+pricing is at kie.ai/pricing — these scripts deliberately never hard-code a rate.
 
 **Aspect ratio and resolution interact.** Some combinations silently clamp. If a keyframe comes
 back at an unexpected size, check the pairing against the list above before blaming the prompt.

@@ -21,6 +21,7 @@ const kfDir = path.resolve(a.keyframes || 'keyframes')
 const outDir = path.resolve(a.out || 'segments')
 const mode = a.mode || 'pro'
 const duration = parseInt(a.duration || '5', 10)
+if (!(duration >= 3 && duration <= 15)) { console.error('--duration must be a whole number from 3 to 15 (the API accepts no other values)'); process.exit(1) }
 const aspect = a.aspect || '16:9'
 
 const kfStateFile = path.join(kfDir, '_state.json')
@@ -99,8 +100,16 @@ for (const m of todo) {
   try {
     taskId = await createTask('kling-3.0/video', {
       prompt,
-      image_urls: [first, last],   /* order matters: [first frame, last frame] */
-      duration, aspect_ratio: aspect, mode, sound: false,
+      /* [first frame, last frame]. Per the spec: length 2 = first and last; length 1 = first
+         only. With images supplied, aspect_ratio is auto-adapted from them. */
+      image_urls: [first, last],
+      /* duration is a STRING enum ('3'..'15') in this API, not a number - sending 5 instead
+         of "5" fails validation. */
+      duration: String(duration),
+      aspect_ratio: aspect,
+      mode,
+      sound: false,
+      multi_shots: false,          /* the spec marks this required even for single-shot */
     })
   } catch (e) {
     console.error(`  FAILED to submit: ${e.message}`)

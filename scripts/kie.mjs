@@ -73,8 +73,23 @@ async function req (url, opts, { retries = 4, label = '' } = {}) {
        problems. Treating it as success is what makes a bad key look fine in preflight and
        then spin pollTask for the full timeout. */
     if (body && body.code !== undefined && String(body.code) !== '200') {
-      throw new KieError(`${label || url}: kie.ai returned code ${body.code} - ${body.msg || body.message || 'no message'}`,
-        { status: res.status, body })
+      /* kie.ai's documented codes. Naming them beats echoing a bare number, because the two
+         that actually happen mid-run - 402 and 429 - have completely different responses. */
+      const MEANING = {
+        401: 'unauthorised — check KIE_API_KEY',
+        402: 'INSUFFICIENT CREDITS — top up at kie.ai before re-running; nothing was generated',
+        404: 'not found',
+        422: 'validation error — a parameter was rejected; check types (duration is a STRING)',
+        429: 'rate limited — too many tasks created at once',
+        433: 'sub-key usage limit exceeded',
+        455: 'kie.ai is in maintenance',
+        500: 'kie.ai server error',
+        501: 'generation failed',
+        505: 'this feature is currently disabled',
+      }
+      const hint = MEANING[Number(body.code)]
+      throw new KieError(`${label || url}: kie.ai code ${body.code}${hint ? ' (' + hint + ')' : ''}` +
+        `${body.msg ? ' - ' + body.msg : ''}`, { status: res.status, body })
     }
     return body
   }
