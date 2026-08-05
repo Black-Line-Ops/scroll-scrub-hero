@@ -72,8 +72,28 @@ natural — 250 frames wants ~500–600vh.
 The engine:
 
 ```js
+/* Wrapped in an IIFE so a problem in here can never take out the rest of the page's inline
+   script - on these single-file pages everything shares one scope, and one thrown error at
+   the top level silently kills every subsystem below it. */
+(function () {
 const SEQ = window.HERO_SEQ || [], EXT = window.HERO_EXT || 'webp';
-const BASE = 'assets/hero-scroll/frames/';
+
+/* Derive the frame path from where config.js actually loaded from, rather than assuming the
+   page sits at the site root. A hard-coded 'assets/...' resolves against the DOCUMENT, so the
+   same hero that works at / renders a blank canvas at /projects/thing/ with no error at all.
+   Override explicitly with window.HERO_BASE if your assets live somewhere unrelated. */
+const BASE = window.HERO_BASE || (function () {
+  const s = [...document.querySelectorAll('script[src]')]
+    .find(x => /config\.js(\?|$)/.test(x.getAttribute('src') || ''));
+  return s ? new URL('.', new URL(s.src, location.href)).href : 'assets/hero-scroll/frames/';
+})();
+
+if (!SEQ.length) {
+  /* config.js missing or empty. Say so once and leave the page alone - a hero that doesn't
+     appear is survivable; a page whose scripts all died is not. */
+  console.warn('[hero] no HERO_SEQ found — is assets/hero-scroll/frames/config.js loaded before this script?');
+  return;
+}
 
 /* Flatten every clip into one list. HOLD0 repeats frame 1 so the intro headline has room
    before the build starts moving - without it the first scroll pixel already changes the
@@ -158,6 +178,7 @@ function start () {
   });
   gsap.ticker.add(tick);
 }
+})();
 ```
 
 Captions, if you want them, key off `FLAT[i].ci` — the clip index each frame belongs to — and

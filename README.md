@@ -1,9 +1,5 @@
 # scroll-scrub-hero
 
-![A pool being built as you scroll — the camera holds still while the yard transforms](docs/demo-hero.gif)
-
-<sub>The Pools Pavers & Patios hero, scrubbing. Bare grass to filled pool, driven entirely by scroll position — 246 WebP frames on a canvas, no video element.</sub>
-
 Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
 bare yard becomes a finished pool, empty room becomes a staged interior, raw stock becomes a
 machined part. The camera holds still; the subject changes.
@@ -27,17 +23,6 @@ You give it a photograph and a sentence. It:
 
 The finished hero is just images a canvas paints. No video element, no runtime AI, no streaming
 — which is why it scrubs smoothly, works offline once deployed, and doesn't stall on iOS.
-
-
-## Repo map
-
-| | |
-|---|---|
-| [`SKILL.md`](SKILL.md) | what Claude reads — the pipeline, in order |
-| [`scripts/`](scripts) | the four stages plus `doctor.mjs` preflight |
-| [`references/`](references) | kie.ai API contract, prompt craft, page wiring |
-| [`docs/how-it-works.md`](docs/how-it-works.md) | design rationale and the gotchas |
-| [`examples/pools-pavers-patios.md`](examples/pools-pavers-patios.md) | worked example with real numbers |
 
 ## Installing it
 
@@ -106,7 +91,10 @@ node doctor.mjs
 ```
 
 It verifies Node, ffmpeg, your key, and that kie.ai accepts it — and prints the exact fix for
-anything missing. The key is only ever read from the environment; it is never written to disk.
+anything missing. The scripts only ever READ the key from the environment — they never write it anywhere. Your
+shell may still record the command in its history: on macOS/Linux a leading space usually
+keeps it out, and the PowerShell `SetEnvironmentVariable` form stores it in your user
+environment rather than a file.
 
 ## Using it
 
@@ -174,12 +162,3 @@ More detail lives in `references/prompting.md` (getting good frames) and
 ## Licence / attribution
 
 Use it on client work freely. If it's useful, a mention is appreciated but not required.
-
----
-
-## Related
-
-If you want the *other* kind of scroll hero — a camera that flies continuously through an
-invented 3D world rather than a locked camera watching a real place change — see
-[oso95/scroll-world](https://github.com/oso95/scroll-world) (MIT). Different technique,
-different generator (Higgsfield), and genuinely complementary to this one.
