@@ -1,0 +1,21 @@
+{
+  "name": "scroll-scrub-hero",
+  "description": "Build a scroll-scrubbed hero from one or two real photos. A multimodal model storyboards from the photo, an image model renders keyframe stills image-to-image so the real property stays recognisable, a human approves a contact sheet, Kling 3.0 tweens between consecutive stills, and ffmpeg cuts the result into drop-in WebP frames plus a config file.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Black Line Ops",
+    "url": "https://blacklinedesign.website"
+  },
+  "homepage": "https://github.com/Black-Line-Ops/scroll-scrub-hero",
+  "license": "MIT",
+  "keywords": [
+    "scroll",
+    "hero",
+    "kie-ai",
+    "kling",
+    "landing-page",
+    "ffmpeg",
+    "before-after",
+    "web-design"
+  ]
+}

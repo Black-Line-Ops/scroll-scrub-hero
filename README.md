@@ -32,31 +32,52 @@ The finished hero is just images a canvas paints. No video element, no runtime A
 
 ## Installing it
 
-**If you were given a `.skill` file:** open it with Claude (drag it into Claude Code, or use the
-Save skill button when Claude shows it to you). It installs into your profile and is available
-in any project.
+Works in Claude Code, Codex, Cursor and most other `SKILL.md`-compatible agents. Pick whichever
+line matches your setup.
 
-**If you were given a folder:** drop it into your skills directory and restart Claude Code.
+### Any agent — the skills CLI
+
+Installs into whichever agents it finds on your machine (75+ supported, Codex and Cursor
+included). It will ask which ones to target if it can't tell.
+
+```bash
+npx skills add Black-Line-Ops/scroll-scrub-hero
+```
+
+For Codex this lands in `.agents/skills/` for the project, or `~/.codex/skills/` globally.
+
+### Claude Code — as a plugin
+
+```
+/plugin marketplace add Black-Line-Ops/scroll-scrub-hero
+/plugin install scroll-scrub-hero@scroll-scrub-hero
+```
+
+### Claude Code — from a `.skill` file
+
+Open it with Claude (drag it in, or use the **Save skill** button when Claude shows it). It
+installs into your profile and is available in every project.
+
+### By hand
+
+Drop the folder into your agent's skills directory and restart it.
 
 | | |
 |---|---|
-| macOS / Linux | `~/.claude/skills/scroll-scrub-hero/` |
-| Windows | `C:\Users\<you>\.claude\skills\scroll-scrub-hero\` |
+| Claude Code (macOS / Linux) | `~/.claude/skills/scroll-scrub-hero/` |
+| Claude Code (Windows) | `C:\Users\<you>\.claude\skills\scroll-scrub-hero\` |
+| Codex (project) | `.agents/skills/scroll-scrub-hero/` |
+| Codex (global) | `~/.codex/skills/scroll-scrub-hero/` |
 
-Either way, `SKILL.md` must sit at the top level of the `scroll-scrub-hero` folder — not nested
-in a second folder of the same name, which is the usual unzip accident.
+`SKILL.md` must sit at the top level of the `scroll-scrub-hero` folder — not nested inside a second
+folder of the same name, which is the usual unzip accident.
 
-Verify it landed:
+Then verify, from wherever it landed:
 
 ```bash
-node ~/.claude/skills/scroll-scrub-hero/scripts/doctor.mjs
+node scroll-scrub-hero/scripts/doctor.mjs
 ```
 
-On Windows PowerShell:
-
-```powershell
-node "$env:USERPROFILE\.claude\skills\scroll-scrub-hero\scripts\doctor.mjs"
-```
 
 ## What you need
 
