@@ -1,23 +1,36 @@
 # scroll-scrub-hero
 
-<!-- WANT A PLAYER WITH PAUSE/SCRUB HERE? It takes one manual step, and only one:
-     drag docs/examples-reel.mp4 into any GitHub comment box, let it upload, copy the
-     https://github.com/user-attachments/assets/... URL it produces, and paste that bare on
-     its own line in place of the image below. A bare attachment URL is the ONLY thing
-     GitHub turns into a video player in a README.
+<!-- AUTOPLAY AND SCRUB CONTROLS CANNOT BOTH HAPPEN HERE. Both verified, not assumed:
 
-     Do not bother re-trying a <video> tag. GitHub's README renderer strips it — verified
-     against `GET /repos/{owner}/{repo}/readme` with Accept: application/vnd.github.html,
-     which returned zero <video> elements for exactly that markup. (The /markdown API keeps
-     the tag when called WITHOUT `context`, which is a misleading way to test it.) -->
+       - GitHub strips `autoplay`, `loop` and `playsinline` from author markup. Only
+         `controls` and `muted` survive.
+       - GitHub's own uploaded-video player carries `controls muted` and NO autoplay —
+         read straight off oso95/scroll-world's rendered README, which is the reference
+         everyone points at. Its video does not autoplay either; you click it.
+       - A <video> tag pointing at a file in the repo is stripped outright. Verified with
+         `GET /repos/{owner}/{repo}/readme`, Accept: application/vnd.github.html — zero
+         <video> elements. (The /markdown API keeps it when called WITHOUT `context`,
+         which is a misleading way to test.)
 
-![Three scroll-scrub heroes playing one after another](docs/examples-reel.gif)
+     So: an animated image is the only thing that plays by itself, and that is what this is.
+     If you would rather have the player with a scrubber, and accept click-to-play, drag
+     docs/examples-reel.mp4 into any GitHub comment box, copy the
+     https://github.com/user-attachments/assets/... URL it returns, and paste it bare on its
+     own line in place of the <img> below.
+
+     width="100%" rather than a wider file on purpose: GIF costs ~500 KB per second at this
+     width, so a natively-880px version of the full 22s runs 9-11 MB. The 600px source
+     upscales cleanly enough — the headlines stay crisp, only the small body copy softens —
+     and the crisp original is one click away in the MP4. -->
+
+<img src="docs/examples-reel.gif" width="100%" alt="Three scroll-scrub heroes playing one after another">
 
 <sub>Three heroes built with this technique, scrubbing back to back — Pools Pavers &amp; Patios,
 Abracadabra and American Floor Scraping. Real recordings, not highlight edits: every one is
 driven at the same constant <b>400&nbsp;px/second</b>, roughly the pace of an unhurried
 browsing scroll, so the clip lengths differ because the heroes do.
-<a href="docs/examples-reel.mp4">Full-quality MP4</a> if you want to scrub it frame by frame.
+This plays by itself, and GitHub puts a pause button on it. Open the
+<a href="docs/examples-reel.mp4">full-quality MP4</a> to scrub it frame by frame.
 Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 
 Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
