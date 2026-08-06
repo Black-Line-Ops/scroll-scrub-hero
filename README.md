@@ -1,10 +1,10 @@
 # scroll-scrub-hero
 
-![Two scroll-scrub heroes playing one after another](docs/examples-reel.gif)
+![Three scroll-scrub heroes playing one after another](docs/examples-reel.gif)
 
-<sub>Two heroes built with this technique, scrubbing back to back — Pools Pavers &amp; Patios and
-Abracadabra. Real recordings driven at a constant scroll rate, not highlight edits.
-Measurements and case studies in <a href="examples/">examples/</a>.</sub>
+<sub>Three heroes built with this technique, scrubbing back to back — Pools Pavers &amp; Patios,
+Abracadabra and American Floor Scraping. Real recordings driven at a constant scroll rate, not
+highlight edits. Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 
 Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
 bare yard becomes a finished pool, empty room becomes a staged interior, raw stock becomes a
