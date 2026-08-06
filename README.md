@@ -1,17 +1,23 @@
 # scroll-scrub-hero
 
-<!-- Video rather than a GIF so it has a scrubber: at a watchable pace the reel is 22s, which
-     is ~14 MB as a GIF and 4.6 MB as h264, and a GIF gives the viewer no way to pause on a
-     frame. GitHub's sanitiser keeps <video src controls muted width> (it strips loop,
-     autoplay and playsinline). If you ever want the native auto-playing player instead, drag
-     docs/examples-reel.mp4 into any GitHub comment box, copy the user-attachments URL it
-     produces, and paste that bare on its own line in place of this tag. -->
-<video src="https://github.com/Black-Line-Ops/scroll-scrub-hero/raw/main/docs/examples-reel.mp4" controls muted width="100%"></video>
+<!-- WANT A PLAYER WITH PAUSE/SCRUB HERE? It takes one manual step, and only one:
+     drag docs/examples-reel.mp4 into any GitHub comment box, let it upload, copy the
+     https://github.com/user-attachments/assets/... URL it produces, and paste that bare on
+     its own line in place of the image below. A bare attachment URL is the ONLY thing
+     GitHub turns into a video player in a README.
+
+     Do not bother re-trying a <video> tag. GitHub's README renderer strips it — verified
+     against `GET /repos/{owner}/{repo}/readme` with Accept: application/vnd.github.html,
+     which returned zero <video> elements for exactly that markup. (The /markdown API keeps
+     the tag when called WITHOUT `context`, which is a misleading way to test it.) -->
+
+![Three scroll-scrub heroes playing one after another](docs/examples-reel.gif)
 
 <sub>Three heroes built with this technique, scrubbing back to back — Pools Pavers &amp; Patios,
 Abracadabra and American Floor Scraping. Real recordings, not highlight edits: every one is
 driven at the same constant <b>400&nbsp;px/second</b>, roughly the pace of an unhurried
 browsing scroll, so the clip lengths differ because the heroes do.
+<a href="docs/examples-reel.mp4">Full-quality MP4</a> if you want to scrub it frame by frame.
 Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 
 Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
