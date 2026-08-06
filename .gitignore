@@ -4,6 +4,9 @@ keyframes/
 segments/
 storyboard.json
 *.mp4
+# ...except the README demo. A trailing comment on a pattern line is NOT a comment in
+# gitignore, it becomes part of the pattern, so this must sit on its own line.
+!docs/examples-reel.mp4
 *_state.json
 
 # Never commit a key

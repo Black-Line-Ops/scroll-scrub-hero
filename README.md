@@ -1,10 +1,18 @@
 # scroll-scrub-hero
 
-![Three scroll-scrub heroes playing one after another](docs/examples-reel.gif)
+<!-- Video rather than a GIF so it has a scrubber: at a watchable pace the reel is 22s, which
+     is ~14 MB as a GIF and 4.6 MB as h264, and a GIF gives the viewer no way to pause on a
+     frame. GitHub's sanitiser keeps <video src controls muted width> (it strips loop,
+     autoplay and playsinline). If you ever want the native auto-playing player instead, drag
+     docs/examples-reel.mp4 into any GitHub comment box, copy the user-attachments URL it
+     produces, and paste that bare on its own line in place of this tag. -->
+<video src="https://github.com/Black-Line-Ops/scroll-scrub-hero/raw/main/docs/examples-reel.mp4" controls muted width="100%"></video>
 
 <sub>Three heroes built with this technique, scrubbing back to back — Pools Pavers &amp; Patios,
-Abracadabra and American Floor Scraping. Real recordings driven at a constant scroll rate, not
-highlight edits. Measurements and case studies in <a href="examples/">examples/</a>.</sub>
+Abracadabra and American Floor Scraping. Real recordings, not highlight edits: every one is
+driven at the same constant <b>400&nbsp;px/second</b>, roughly the pace of an unhurried
+browsing scroll, so the clip lengths differ because the heroes do.
+Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 
 Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
 bare yard becomes a finished pool, empty room becomes a staged interior, raw stock becomes a

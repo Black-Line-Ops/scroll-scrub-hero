@@ -1,7 +1,7 @@
 # Examples
 
 Four scroll-scrub heroes shipped on real client sites, measured. The reel at the top of the
-repo README plays the first three back to back.
+repo README plays the first three back to back, each driven at the same 400 px/second.
 
 The point of putting them side by side is the **weight column**. Same technique, same engine,
 and a 4× spread in bytes per frame — which is entirely a function of decisions made at
