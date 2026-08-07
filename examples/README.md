@@ -54,8 +54,22 @@ the shape of the screen.
 keyframe path the rest of the skill describes. The client supplied six generated clips, and only
 the back half of the pipeline was used: cut to numbered WebP, emit `config.js`, wire the canvas
 engine. That half is identical either way, which is the point worth taking — `build-frames.mjs`
-does not care where the footage came from, so if you already have clips you like, you can skip
-straight to it.
+does not care where the footage came from.
+
+**If you take that path, pass `--allow-gaps`, and understand what you are switching off.**
+Before it writes anything, `build-frames.mjs` cross-checks the segments it found against the
+`motions` in the storyboard you hand it, and refuses to build when the storyboard describes a
+segment that has no video. That check is the only thing standing between a missing clip and a
+finished, paid-for hero that ships with a chapter silently absent at exit 0 — which is a failure
+with no symptom anywhere except the finished page. `--allow-gaps` turns the refusal into a
+warning that still names the missing pairs; the clips that do exist keep their own chapter
+numbers, so the remaining captions stay on their own footage and the hero simply has a hole.
+
+So use it when the mismatch is the point — your own clips against a storyboard that was never
+meant to describe them — and never as a way past a complaint you did not expect. If the check
+fires on a run you drove through `tween.mjs`, a segment really is missing: regenerate it with the
+`--only N` command the error prints. There is no cost either way; `build-frames.mjs` is local
+ffmpeg and both paid stages are already behind you.
 
 Two things this hero does that the others do not:
 

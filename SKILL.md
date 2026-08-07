@@ -46,16 +46,34 @@ as a hard design input, not an afterthought — `build-frames.mjs` reports it an
 
 ## Before starting
 
-Run the preflight from the skill's `scripts/` directory:
+Every command in this document invokes the scripts through `$SKILL`, so set that first. It is
+the absolute path of the folder holding this `SKILL.md` — wherever the install put it:
+
+```bash
+# macOS / Linux / Git Bash
+SKILL="$HOME/.claude/skills/scroll-scrub-hero"                 # adjust if installed elsewhere
+```
+
+```powershell
+# Windows PowerShell
+$SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"   # adjust if installed elsewhere
+```
+
+Both shells expand `$SKILL` inside double quotes, so every `node "$SKILL/scripts/…"` line below
+is copy-pasteable verbatim in either one. Forward slashes are fine on Windows; Node accepts them.
+
+Then run the preflight. It takes no arguments and works from any directory:
 
 ```bash
 node "$SKILL/scripts/doctor.mjs"
 ```
 
-It checks Node 18+, ffmpeg, ffprobe, `KIE_API_KEY`, whether kie.ai actually accepts that key,
-and whether the working directory is writable — then prints the exact fix for whatever is
-missing, including the per-platform commands for setting the key. If it reports problems, work
-through them before going further rather than discovering them mid-run with credits spent.
+It checks Node 18+, ffmpeg, ffprobe, that this ffmpeg actually carries the libwebp encoder step 5
+depends on, `KIE_API_KEY`, whether kie.ai accepts that key, whether every route the pipeline calls
+still exists, and whether the working directory is writable — then prints the exact fix for
+whatever is missing, including the per-platform commands for setting the key. If it reports
+problems, work through them before going further rather than discovering them mid-run with
+credits spent.
 
 If the user has no key, point them at kie.ai → API keys and note the account needs credits. The
 key is read from the environment only; never write it into a file in their repo, and never echo
@@ -73,13 +91,22 @@ into the site. Pass **absolute paths** for `--out` when writing into the site, s
 to `cd` mid-run. Each step writes state to disk, so a run resumes after an interruption instead
 of re-paying for finished work.
 
-Every command below is written to be run from that one scratch directory, with
-`SKILL=<absolute path to this skill>` so the scripts can be found from anywhere:
+Every command below is written to be run from that one scratch directory, with `SKILL` set as in
+[Before starting](#before-starting) — repeated in the fence because a fresh terminal loses it:
 
 ```bash
 mkdir -p myproject/.scrub-hero/jones && cd myproject/.scrub-hero/jones
 SKILL="$HOME/.claude/skills/scroll-scrub-hero"     # adjust if installed elsewhere
 ```
+
+```powershell
+New-Item -ItemType Directory -Force myproject\.scrub-hero\jones | Out-Null
+Set-Location myproject\.scrub-hero\jones
+$SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"
+```
+
+Nothing below ever needs a second `cd`: the scripts are addressed through `$SKILL`, and anything
+written outside the scratch directory is passed as an absolute path.
 
 When a step spends credits it asks for confirmation. If a script, CI or Claude is running the
 command there is no keyboard to answer with, so those steps take `--yes` — which is an explicit
@@ -139,16 +166,26 @@ node "$SKILL/scripts/tween.mjs" --storyboard storyboard.json --keyframes keyfram
 ```
 
 Uploads each adjacent pair as first/last frame with its motion prompt. Defaults are `pro`
-(1920×1080 at 16:9) and 5 s, which yields ~120 source frames per gap — comfortably more than the
-~40 the sequence needs, so the frame sampler has slack.
+(1920×1080 at 16:9) and 5 s.
+
+The script prints the frame arithmetic before it spends, and it is worth reading rather than
+skipping: at ~24 fps a 5 s segment renders ~121 frames and step 5 keeps 40, so ~81 per segment
+are rendered, billed and thrown away. What that surplus buys is headroom above `--per-clip`;
+what it costs is seconds of Kling. `--duration 3` still yields ~73, comfortably above 40 — but 3
+is the API floor, and shortening the gap is also the first cheap remedy when a seam cuts
+(`references/prompting.md`), so a run that already sits at the floor has nothing left to shorten.
+The script also records whatever kie.ai reports as `creditsConsumed` per segment into
+`segments/_state.json`, next to the duration it was generated at, so the trade is answerable from
+your own runs instead of estimated.
 
 It re-uploads the keyframes first: kie.ai deletes uploads after 24 h, and the approval gate you
 just held is exactly the kind of pause that outlives them.
 
 Segments are independent, so a single failure is re-runnable with `--only 3` rather than redoing
 the set. A segment only counts as done when its video is on disk — if any are missing the script
-says so and exits non-zero, because building frames from a partial set produces a hero with a
-missing chapter and no error.
+says so and exits non-zero, because a partial set builds a hero with a missing chapter. Step 5
+checks the same thing again from the other side, so ignoring this exit code does not get you
+past it; it only moves the stop later.
 
 `--yes` is there because there is no keyboard when Claude or CI runs this. Only pass it once the
 user has actually approved the contact sheet.
@@ -156,13 +193,22 @@ user has actually approved the contact sheet.
 ### 5. Cut to frames
 
 ```bash
-node scripts/build-frames.mjs --segments segments/ --storyboard storyboard.json \
-  --out /abs/path/to/site/assets/hero-scroll/frames/ --width 1600 --per-clip 40
+node "$SKILL/scripts/build-frames.mjs" --segments segments/ --storyboard storyboard.json --out /abs/path/to/site/assets/hero-scroll/frames/ --width 1600 --per-clip 40
 ```
+
+One line, no backslash continuation — a trailing `\` is a bash-ism and breaks the paste in
+PowerShell, which is a first-class target here.
 
 Extracts an even sample from each segment, downscales, encodes WebP, and writes `config.js`
 alongside the `clipN/` directories. It reports per-clip and total weight; if the total lands
 above ~35 MB, drop `--per-clip` or `--width` rather than shipping it.
+
+Before it writes anything it cross-checks the segments on disk against the storyboard's
+`motions`. If the storyboard describes a segment that has no video, it names the missing pairs,
+prints the `tween.mjs --only N` that regenerates them, and exits non-zero — because that is the
+failure that otherwise ships a hero with a chapter missing and every signal reading success.
+`--allow-gaps` downgrades it to a warning; the bring-your-own-clips note in `examples/README.md`
+is the one case that legitimately wants it.
 
 Use an **absolute** `--out` so you can stay in the scratch directory. It also flags two things
 worth catching here: byte-identical segments (the same motion twice, usually a stale file from
@@ -220,6 +266,7 @@ tween carries less change. More, smaller steps beat fewer, larger ones.
 should describe *one* physical process ("the excavator digs out the shape, soil piles left"),
 not a list.
 
-**A task never completes.** Poll state is `waiting|queuing|generating|success|fail`. The scripts
-time out at 10 minutes and leave the taskId in the state file so you can query it by hand — see
-`references/kie-api.md`. Don't re-create a task that may still be running; you pay twice.
+**A task never completes.** Poll state is `waiting|queuing|generating|success|fail`. Polling
+gives up after 10 minutes for a keyframe and 15 for a segment, and leaves the taskId in the state
+file so you can query it by hand — see `references/kie-api.md`. Don't re-create a task that may
+still be running; you pay twice.

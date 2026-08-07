@@ -1,0 +1,20 @@
+# Describes the style the scripts are already written in, so an editor does not "fix" them.
+# There is no linter or formatter in this repo and adding one is not planned; this file is the
+# only thing standing between a contributor's editor defaults and a diff full of whitespace.
+root = true
+
+[*]
+charset = utf-8
+# LF everywhere, including on Windows. Git normalises on checkout, but a file created inside an
+# editor on Windows never passes through that, and CRLF in a .mjs makes a one-line diff look like
+# a rewrite.
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+# Markdown gives two trailing spaces a meaning (a hard line break). Nothing in this repo relies
+# on it today, but a stripped one is an invisible content change rather than a whitespace change.
+trim_trailing_whitespace = false

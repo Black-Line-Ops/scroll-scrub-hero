@@ -1,27 +1,10 @@
 # scroll-scrub-hero
 
-<!-- AUTOPLAY AND SCRUB CONTROLS CANNOT BOTH HAPPEN HERE. Both verified, not assumed:
-
-       - GitHub strips `autoplay`, `loop` and `playsinline` from author markup. Only
-         `controls` and `muted` survive.
-       - GitHub's own uploaded-video player carries `controls muted` and NO autoplay —
-         read straight off oso95/scroll-world's rendered README, which is the reference
-         everyone points at. Its video does not autoplay either; you click it.
-       - A <video> tag pointing at a file in the repo is stripped outright. Verified with
-         `GET /repos/{owner}/{repo}/readme`, Accept: application/vnd.github.html — zero
-         <video> elements. (The /markdown API keeps it when called WITHOUT `context`,
-         which is a misleading way to test.)
-
-     So: an animated image is the only thing that plays by itself, and that is what this is.
-     If you would rather have the player with a scrubber, and accept click-to-play, drag
-     docs/examples-reel.mp4 into any GitHub comment box, copy the
-     https://github.com/user-attachments/assets/... URL it returns, and paste it bare on its
-     own line in place of the <img> below.
-
-     width="100%" rather than a wider file on purpose: GIF costs ~500 KB per second at this
-     width, so a natively-880px version of the full 22s runs 9-11 MB. The 600px source
-     upscales cleanly enough — the headlines stay crisp, only the small body copy softens —
-     and the crisp original is one click away in the MP4. -->
+<!-- Before changing the line below to a <video>: that has been tried and reverted (69011b2,
+     b7ce8d6). GitHub strips autoplay from author markup, and strips a <video> pointing at a
+     file in this repo outright, so an animated image is the only thing that plays by itself.
+     That evidence, the click-to-play alternative, and why the source is 600px wide are all in
+     docs/readme-reel.md. Read it before reopening this. -->
 
 <img src="docs/examples-reel.gif" width="100%" alt="Three scroll-scrub heroes playing one after another">
 
@@ -99,12 +82,9 @@ Drop the folder into your agent's skills directory and restart it.
 `SKILL.md` must sit at the top level of the `scroll-scrub-hero` folder — not nested inside a second
 folder of the same name, which is the usual unzip accident.
 
-Then verify, from wherever it landed:
-
-```bash
-node scroll-scrub-hero/scripts/doctor.mjs
-```
-
+Note where it landed. Everything below addresses the scripts through a `SKILL` variable holding
+that path, which is what lets you run them from your own project directory instead of from inside
+the skill. Setting it, and the one command that checks the whole install, are in **Setup** below.
 
 ## What you need
 
@@ -138,13 +118,23 @@ export KIE_API_KEY="your-key-here"
 echo 'export KIE_API_KEY="your-key-here"' >> ~/.zshrc
 ```
 
-Then check everything from the skill's `scripts/` folder:
+Then point `SKILL` at the folder you installed into and run the preflight. This is the only check
+this README asks you to run — it covers the install, the tools and the key in one command:
 
 ```bash
-node doctor.mjs
+# macOS / Linux / Git Bash
+SKILL="$HOME/.claude/skills/scroll-scrub-hero"                 # adjust to where it landed
+node "$SKILL/scripts/doctor.mjs"
 ```
 
-It verifies Node, ffmpeg, your key, and that kie.ai accepts it — and prints the exact fix for
+```powershell
+# Windows PowerShell
+$SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"   # adjust to where it landed
+node "$SKILL/scripts/doctor.mjs"
+```
+
+It verifies Node, ffmpeg, that your ffmpeg can actually encode WebP, your key, that kie.ai
+accepts it, and that every route the pipeline calls still exists — and prints the exact fix for
 anything missing. The scripts only ever READ the key from the environment — they never write it anywhere. Your
 shell may still record the command in its history: on macOS/Linux a leading space usually
 keeps it out, and the PowerShell `SetEnvironmentVariable` form stores it in your user
@@ -159,19 +149,21 @@ Easiest way is to just ask Claude, in a project where the skill is installed:
 
 Claude reads the skill and drives the pipeline, stopping at the contact sheet for your approval.
 
-To drive it by hand instead — **run all four from the same directory**, and use absolute paths
-for anything outside it:
+To drive it by hand instead — **run all four from the same scratch directory**, never from inside
+the skill folder, and use absolute paths for anything outside it:
 
 ```bash
 mkdir -p ~/scrub/jones && cd ~/scrub/jones
-SKILL="$HOME/.claude/skills/scroll-scrub-hero"
+SKILL="$HOME/.claude/skills/scroll-scrub-hero"    # PowerShell: $SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"
 
 node "$SKILL/scripts/storyboard.mjs"   --ref /abs/path/photo.jpg --idea "bare grass to finished pool" --steps 6
 node "$SKILL/scripts/keyframes.mjs"    --storyboard storyboard.json     # then open keyframes/contact-sheet.html
 node "$SKILL/scripts/tween.mjs"        --storyboard storyboard.json --mode pro --duration 5 --yes
-node "$SKILL/scripts/build-frames.mjs" --segments segments/ --storyboard storyboard.json \
-                                       --out /abs/path/site/assets/hero-scroll/frames/
+node "$SKILL/scripts/build-frames.mjs" --segments segments/ --storyboard storyboard.json --out /abs/path/site/assets/hero-scroll/frames/
 ```
+
+That last line is long on purpose. A trailing `\` to wrap it is a bash-ism, and this project
+supports PowerShell, where the paste would break.
 
 Staying in one directory matters: the scripts record their progress in `_state.json` files
 beside their output, and that is also what lets you resume a run instead of paying twice.
@@ -197,8 +189,11 @@ This matters more than any setting.
 You pay kie.ai directly for what you generate. A typical six-step hero is a handful of stills
 plus five video segments — the stills are cheap, the video is the real cost. Two habits keep it
 sane: approve the contact sheet before tweening, and regenerate single items (`--only 3`)
-rather than whole batches. Check current per-model pricing on kie.ai; the scripts print an
-estimate and wait for confirmation before spending.
+rather than whole batches. Check current per-model pricing on kie.ai — the scripts deliberately
+do not hard-code a rate, so they print exactly what is about to be generated rather than a dollar
+figure, and wait for confirmation before spending. What they do record is whatever kie.ai reports
+as `creditsConsumed`, per segment, in `segments/_state.json`, so what a run cost is something you
+can look up afterwards instead of estimate.
 
 ## If something looks wrong
 

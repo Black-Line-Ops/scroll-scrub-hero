@@ -53,11 +53,17 @@ kie.ai task ids behind it. This is what makes a run resumable, and it matters mo
 sounds: a six-segment tween takes many minutes per segment, so interruptions are normal, and
 re-creating a task that is still running bills you twice.
 
-Two rules the state layer enforces:
+Three rules the state layer enforces:
 
 - **A segment counts as done only when its video is on disk.** Recording a task id is not the
   same as having the file — a failed segment used to persist as "complete" and the frame builder
   would then ship a hero with a missing chapter.
+- **The consumer checks too, not just the producer.** `tween.mjs` refusing to hand over a partial
+  set is only half the guarantee: clips can be deleted afterwards, and the back half of the
+  pipeline can be driven on its own with footage that never came from `tween.mjs` at all. So
+  `build-frames.mjs` independently cross-checks what is on disk against the storyboard's
+  `motions` and exits non-zero on a gap, unless `--allow-gaps` says the mismatch is intended.
+  A guarantee enforced at only one end of a pipeline is not enforced.
 - **A corrupt state file is fatal, not empty.** Silently treating unreadable state as "nothing
   generated" means re-paying for everything.
 
@@ -76,7 +82,15 @@ using them.
 
 **Frame count and config must agree exactly.** The page indexes frames by number, so one missing
 file is a broken scrub. `build-frames.mjs` normalises the sampled count to the requested count
-and writes that same number into `config.js`.
+and writes that same number into `config.js`. Normalising has a limit, though: it pads a small
+shortfall by repeating the last frame, and says how many it repeated, but a shortfall past a
+tenth of the clip is treated as a truncated segment and stops the run. Padding that far does not
+produce the requested count, it produces a chapter frozen for most of its scroll while
+`config.js` reports a healthy number.
+
+**File upload is on a different host from everything else.** `https://kieai.redpandaai.co`, not
+`api.kie.ai`. It looks like a typo, it is not, and "correcting" it breaks every run at its first
+network call. `references/kie-api.md` carries the probe output.
 
 ## Extending it
 
