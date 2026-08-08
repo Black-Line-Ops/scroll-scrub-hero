@@ -23,13 +23,20 @@ keyframes would give you the same six chapters.
 | clip5 | 05 · Finish | PebbleSheen interior, smooth and true. | 37 |
 | clip6 | 06 · Dive in | Fill it, balance it, then dive in. | 37 |
 
-**246 frames, 30 MB, 960×960 WebP.**
+**246 frames, 29.5 MB, 960×960 WebP.**
 
 ## What the numbers tell you
 
-**~122 KB per frame.** That is the figure to hold in your head. The skill's default budget is
-35 MB, and this build sits just under it at 30 MB. Frames are the entire page weight of a scrub
+**~123 KB per frame.** That is the figure to hold in your head. The skill's default budget is
+35 MB, and this build sits under it at 29.5 MB. Frames are the entire page weight of a scrub
 hero, so this is the number that decides whether it feels instant or sluggish on a phone.
+
+> **On the unit**, because this page is made of measured numbers and one of them was wrong here.
+> The real total is **30,895,088 bytes**. `build-frames.mjs` divides by 1048576 and prints "MB",
+> so what it actually reports is **MiB** — 29.46, hence 29.5. In decimal MB, the unit a browser's
+> network panel uses, the same bytes are **30.9 MB** at 125.6 kB per frame. An earlier version of
+> this page mixed the two, quoting the decimal total next to the binary per-frame figure. Both
+> conventions are defensible; using one and labelling it is not optional.
 
 **960×960 square was a mistake.** Squares forced a fit-by-height letterbox on wide screens, and
 the page needed a separate extended backdrop image behind the canvas to fill the gap. Generate

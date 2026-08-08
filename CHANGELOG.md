@@ -8,7 +8,11 @@ No changelog was kept before this file existed, so the `1.0.0` entry below is a 
 was in the repo at that point rather than a record written as it happened. Everything under
 `Unreleased` is first-hand.
 
-## [Unreleased]
+## [1.1.0] — 2026-08-07
+
+> Version bumped because `1.0.0` could not complete a run. Anyone who installed before this could
+> not tell a fixed copy from a broken one, since the manifest still claimed `1.0.0` while `main`
+> carried every fix below. If you have an older copy, reinstall.
 
 Two independent audits of `1.0.0` found that a cold start could not complete a single run: three
 defects sat in strict series on the path before the first billable call, each masking the next.
@@ -98,6 +102,18 @@ audits turned up.
 * `SSH_REQUIRE_FFMPEG=1` turns a missing ffmpeg into a test failure instead of eleven silent skips.
   Without it a green suite covers neither the stale-`config.js` removal nor the trailing-frame drop,
   and the exit code cannot tell you that. Use it in CI and before a release.
+* **Cost estimation in credits and dollars, with an approval gate that knows your balance.** Every
+  rate is quoted verbatim from kie.ai's own pages (1 credit = $0.005; Kling 14 cr/s std, 18 pro,
+  67 at 4K, no-audio; GPT Image 2 at 6/10/16 cr for 1K/2K/4K) with the source and date recorded per
+  row. `doctor.mjs` shows your balance, each paid stage prices only the work it will actually do,
+  and a run that exceeds your balance says so before you answer y/n. Override the table with
+  `SSH_RATES` if you are on a discounted tier.
+* **`pollTask` now reports `creditsConsumed`.** It accepted an `onMeta` callback from two callers
+  and never invoked it, so the figure was silently dropped and the reconciliation the gates promised
+  never ran. Runs now record what they actually cost and say when the built-in estimate is off.
+* **A guided interview.** `SKILL.md` now opens with batched multiple-choice questions phrased as
+  outcomes rather than flags, each option carrying its own price, so the pipeline can be driven by
+  someone who has never heard of a keyframe. The flag-level docs are still there underneath.
 
 ### Notes
 

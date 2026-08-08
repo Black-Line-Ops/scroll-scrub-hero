@@ -18,11 +18,19 @@ good as the vendor docs get — and where those docs contradict themselves, this
 rather than picking a side silently. A verification date is a stronger claim than no date, so it
 is worth being exact about which half of the contract it covers.
 
+The same rule governs [What it costs](#what-it-costs): every rate there names the page it was
+read from and carries a confidence, and the one figure that is *derived* rather than quoted says
+so on its own row.
+
 ## Contents
 - [Auth and base](#auth-and-base)
 - [The three-call pattern](#the-three-call-pattern)
 - [File upload](#file-upload)
 - [Models used by this skill](#models-used-by-this-skill)
+- [What it costs](#what-it-costs)
+- [Overriding the rates](#overriding-the-rates)
+- [Calibration: how the table corrects itself](#calibration-how-the-table-corrects-itself)
+- [Credit balance](#credit-balance)
 - [Gotchas that cost real time](#gotchas-that-cost-real-time)
 
 ## Auth and base
@@ -214,6 +222,213 @@ The documentation states plainly that first and last frames should be **as simil
 because large differences cause a lens switch. That single sentence is the design constraint the
 whole skill is built around.
 
+## What it costs
+
+This section is the documentation of `scripts/pricing.mjs`. That file is the single source of
+every cost figure the scripts print; if this document and that table ever disagree, **the table
+is right and this is stale** — run `node scripts/pricing.mjs` to see the live one with its
+provenance, or `node scripts/doctor.mjs` to see it next to your actual balance.
+
+### The conversion
+
+**1 credit = $0.005 USD.** Read from https://kie.ai/pricing, which states it twice in its own
+copy ("Each credit is valued at $0.005 USD", "Exchange: 1 cr = $0.005"). Corroborated two more
+ways: the account holder's own $5 = 1000 credits top-up, and the fact that every per-model quote
+on the site carries credits and dollars side by side at exactly this ratio. This is the one row
+everything else leans on, which is why it is the one row with three independent agreements.
+
+One nuance that makes the dollars *conservative* rather than wrong: kie.ai advertises 5% or 10%
+bonus credits on some top-up SKUs, so an effective price can be up to ~10% below $0.005. Credits
+consumed are exact either way. If you are on a bonus SKU, pin `creditUsd` — see
+[Overriding the rates](#overriding-the-rates).
+
+### The rates
+
+Read on **2026-08-07** from kie.ai's own public pages, unauthenticated — free and safe, because
+a GET of a marketing page creates nothing. Each row names the page, so the check is re-runnable
+rather than something you have to take on trust.
+
+| Key | Rate | Per | Confidence | Read from |
+|---|---|---|---|---|
+| `creditUsd` | $0.005 | credit | **high** | https://kie.ai/pricing — "Each credit is valued at $0.005 USD" |
+| `image.1K` | 6 cr ($0.03) | image | **high** | https://kie.ai/gpt-image-2 — "6 credits ($0.03) for 1 K" |
+| `image.2K` | 10 cr ($0.05) | image | **high** | https://kie.ai/gpt-image-2 — "10 credits ($0.05) for 2 K" |
+| `image.4K` | 16 cr ($0.08) | image | **high** | https://kie.ai/gpt-image-2 — "16 credits ($0.08) for 4 K" |
+| `video.std` | 14 cr ($0.07) | second | **high** | https://kie.ai/kling-3-0 — "Standard: no-audio 14 credits ($0.07) /s" |
+| `video.pro` | 18 cr ($0.09) | second | **high** | https://kie.ai/kling-3-0 — "Pro: no-audio 18 credits ($0.09) / s" |
+| `video.4K` | 67 cr ($0.335) | second | **high** | https://kie.ai/kling-3-0 — "4K: no/with audio 67 credits ($0.335) /s" |
+| `sol.call` | 0.84–6.72 cr ($0.004–$0.034) | call | **medium — derived** | https://kie.ai/gpt-5-6 rates + one measured run |
+
+Four things in that table are worth reading twice.
+
+**`sol.call` is derived, not quoted, and that is why it is a range.** kie.ai publishes gpt-5-6-sol
+at 280 credits per 1M input tokens and 1680 per 1M output tokens. What it does not publish is how
+many tokens a storyboard costs. One measured run came to ~3–4k tokens total and the input/output
+split was not recorded — which matters, because output is 6× input and Sol is a reasoning model,
+so reasoning tokens land in the output column. The honest bound is therefore the whole envelope:
+3k all-input (0.84 cr) to 4k all-output (6.72 cr). It is around 1% of a typical run either way,
+but the way to say that is a range, not a rounded-down "free". The scripts never print "free" for
+it; they print "under a cent" only when the arithmetic actually says so.
+
+**The video rates are the no-audio column.** `tween.mjs` sends `sound: false`, so those are the
+correct ones — and they are the cheaper ones. kie.ai quotes 20 cr ($0.10)/s std and 27 cr
+($0.135)/s pro with audio. If anyone ever turns sound on, every estimate here understates the real
+bill by a third at pro — 18 → 27 cr/s, so what you actually pay is 50% above the quote — and by
+30% at std (14 → 20 cr/s, a 43% uplift). Nothing fails while that happens, which is why the audio
+figures are recorded rather than dropped.
+
+**`video.4K` is the flag that changes a decision.** 67 cr/s is 3.7× pro. A six-step storyboard —
+five 5 s segments, 25 s of video — goes from ~$2.55 to ~$8.68 on that one flag. It is also
+almost always wasted here, because `build-frames.mjs` downscales every frame to `--width` (1600
+by default) anyway.
+
+**Beware "27 credits/second" from third-party summaries.** Kling's *own* platform has a separate
+credit denomination, and 27 is a common quote in it. It is not kie.ai credits, and it collides
+numerically with kie.ai's pro-*with-audio* figure, so it is unusually easy to import the wrong
+one. Only figures read off kie.ai's own pages belong in this table.
+
+A note on corroboration, because it cuts the other way from the usual warning: earlier
+third-party summaries of Kling-on-kie.ai quoted ~$0.07/s std and ~$0.09/s pro, and a reseller
+quoted $0.075/s. The first two agree exactly with kie.ai's own page. That agreement is why these
+rows are marked high rather than medium — but the page is the source, and the summaries are not
+cited as one.
+
+### What a run adds up to
+
+Computed by `scripts/pricing.mjs` on 2026-08-07 at 2K stills, 5 s clips, one Sol call. N steps
+means N−1 video segments.
+
+| Steps | Segments | std | pro | 4K |
+|---:|---:|---:|---:|---:|
+| 4 | 3 | ~$1.25 | ~$1.55 | — |
+| 6 | 5 | ~$2.05 | ~$2.55 | ~$8.68 |
+| 8 | 7 | ~$2.85 | ~$3.55 | — |
+| 10 | 9 | ~$3.65 | ~$4.55 | — |
+
+Each total is the low end of the estimate's range; the high end is about 3 cents more, and all of
+that spread is `sol.call`. Marginal costs: one keyframe at 2K is ~$0.05, one pro 5 s segment is
+~$0.45, and supplying a real "after" photo with `--ref2` removes one still (~$0.05) because it is
+copied in rather than generated.
+
+### `creditsConsumed` is the only figure that is not an estimate
+
+Everything above predicts. The task detail (`recordInfo`) returns `creditsConsumed`, and that is
+what you were actually billed. The scripts persist it:
+
+- `keyframes/_state.json` — per image, assigned after the state record is rebuilt so a `--only`
+  re-render can never leave the previous render's figure beside a new image.
+- `segments/_state.json` — per segment, alongside the `duration` and `mode` it was generated at,
+  so "was 3 s cheaper than 5 s" is answerable from your own runs.
+
+The dashboard at kie.ai/logs is the ultimate source of truth if a bill looks wrong.
+
+### Where the numbers surface
+
+| Script | What it prints |
+|---|---|
+| `pricing.mjs` | The table above with provenance, an example run, and how to pin your own rates. `--self-test` checks the arithmetic offline — no network, no key. |
+| `doctor.mjs` | Balance in credits and dollars, a priced default run, the full rate table, and the age of the rates. Empty account = failure; balance below the run's high end = warning. |
+| `storyboard.mjs` | A whole-run forecast before the Sol call, plus the balance. Informational — no gate, because the Sol line is the smallest in the forecast. |
+| `keyframes.mjs` | The cost of exactly the stills this run will pay for, the basis, the source, the balance, and a stop-and-think block if the balance will not cover it. Then `confirm()`. |
+| `tween.mjs` | The same shape for video, plus the frame arithmetic; then `confirm()`, then the measured spend and a calibration line at the end. |
+
+Both spend gates take `--yes` for non-interactive runs. With no TTY and no `--yes`, `confirm()`
+neither hangs nor auto-approves: it prints the exact command with `--yes` appended and stops.
+
+## Overriding the rates
+
+Nobody on a different billing tier should be stuck with these numbers, and nobody should have to
+edit `pricing.mjs` to escape them.
+
+Precedence, strongest first. Each tier fills in only the keys it names, so pinning one rate
+leaves the rest of the table alone:
+
+1. a `rates` object handed straight to an estimate function (in-process callers only)
+2. `SSH_RATES` — inline JSON in the environment
+3. `SSH_RATES_FILE` — path to a JSON file
+4. `./ssh-rates.json` in the working directory
+5. the built-in table
+
+`SSH_RATES` beats the file deliberately: the file is a standing default somebody set months ago,
+the environment variable is what they typed for this run.
+
+Keys may be nested or dotted, and a value may be a bare number, a `[low, high]` pair, or
+`{low, high}` / `{credits}`:
+
+```bash
+SSH_RATES='{"video":{"pro":16},"image":{"2K":8}}'
+SSH_RATES='{"video.4K": 40}'
+SSH_RATES='{"creditUsd": 0.0045}'          # a bonus-credit top-up SKU
+```
+
+```powershell
+$env:SSH_RATES = '{"video":{"pro":16},"image":{"2K":8}}'
+```
+
+Two guards worth knowing about, both of which print rather than silently correcting:
+
+- **Every row except `creditUsd` is denominated in CREDITS.** There is deliberately no `{"usd":
+  n}` form, because `{"video":{"pro":{"usd":0.09}}}` — the correct dollar figure — would read as
+  0.09 *credits* per second and price a run at 1/200th of its real cost. A key ending `.usd`,
+  `.dollars` or `.price` is rejected by name with the credits form spelled out.
+- **`creditUsd` is dollars per credit** (0.005), not credits per dollar (200). The inversion
+  would multiply every dollar figure by 40,000, so anything ≥ 1 is refused.
+
+A malformed override is never silently dropped and never fatal. It is recorded and printed once —
+somebody who pinned a rate did it because ours is wrong for them, and quietly reverting would
+price their run at a number they had already rejected. `doctor.mjs` surfaces the same messages as
+WARN lines at preflight.
+
+## Calibration: how the table corrects itself
+
+An estimate that never learns is a guess forever. Because `creditsConsumed` is recorded per item,
+each run can check the table against the bill:
+
+1. After generating, the script rebuilds an estimate for the items that were actually **billed** —
+   not the ones ordered. Comparing a five-segment prediction against a two-segment bill would
+   announce "the rate table is 60% high", which is precisely the confident wrong number this
+   whole arrangement exists to prevent.
+2. The observed credits are compared against the **nearest edge** of the estimate's range, not
+   its midpoint. A range is a claim that the truth lies inside it, so an observation inside it
+   scores zero delta rather than "7% off the middle".
+3. Inside 15%, it prints one line saying the table held.
+4. Outside 15%, it names the measured per-unit rate and prints the `SSH_RATES` line — in both
+   bash and PowerShell form — that pins it.
+
+Video is measured per **second** (from each segment's recorded duration), because that is the
+unit Kling's rate is quoted in; measuring per segment instead is how a calibration reports a 5×
+error that is not there.
+
+So the correct response to "the bill did not match" is not to distrust the figure — it is to run
+the line the script printed. Vendor prices move, and a table that only ever gets updated by
+somebody re-reading a marketing page is a table that goes stale. `doctor.mjs` also warns once the
+built-in rates are more than 120 days old, stated as an age rather than a date so it means
+something to a reader in 2027.
+
+## Credit balance
+
+`GET /api/v1/chat/credit` → credits remaining on the account.
+
+Probed unauthenticated on 2026-08-07 and the route **exists**: HTTP 200 with a body `code` of
+401, which is this API's way of saying "route is here, credentials are not". The control matters
+as much as the probe — `/api/v1/common/credit` answered a real HTTP 404, so the 401 is a signal
+and not a catch-all. `doctor.mjs` includes this route in its preflight probes, so a moved billing
+endpoint is distinguishable from a bad key.
+
+**The success body shape is NOT verified**, because reading it costs a key. The parser accepts a
+bare number at `data`, or any of `remainingCredits`, `credits`, `credit`, `balance`, `remaining`,
+`quantity`, `amount` (numbers, or numeric strings). `remainingCredits` leads that list because it
+is the wording kie.ai's own dashboard uses — a hint about their vocabulary, not a verified field
+name, which is why the others stay. When it recognises none of them it reports "balance unknown"
+rather than guessing. An invented balance would be worse than no balance.
+
+The lookup **fails soft, always**: one attempt, 8 s deadline, no retry, and every failure — no
+key, timeout, HTML interstitial from a proxy, unrecognised body — degrades to
+`{known: false, reason}`. A balance exists to inform a spend gate; the day it starts blocking one
+it has become a liability. `doctor.mjs` treats an unknown balance as a NOTE and does not count it
+against the preflight, but a confirmed **zero or negative** balance is a failure, because the run
+would die at its first call.
+
 ## Gotchas that cost real time
 
 **File upload is on another host.** `kieai.redpandaai.co`, not `api.kie.ai`. See
@@ -242,11 +457,12 @@ integration, and the 422 it produces does not name the offending field.
 recognising instantly, because it means nothing was generated and nothing was charged.
 
 **Where to check spend.** Per-task credit consumption is on the task detail (`creditsConsumed`)
-and in the dashboard at kie.ai/logs, which is the source of truth if a bill looks wrong. Current
-pricing is at kie.ai/pricing — these scripts deliberately never hard-code a rate. `tween.mjs`
-copies each segment's `creditsConsumed` into `segments/_state.json` alongside the duration and
-mode it was generated at, and prints a run total, so "was 3 s cheaper than 5 s" is answerable
-from your own runs rather than from an assumed billing model.
+and in the dashboard at kie.ai/logs, which is the source of truth if a bill looks wrong. The
+scripts *do* carry a rate table now — see [What it costs](#what-it-costs) — but it is dated,
+sourced per row, overridable, and calibrated against `creditsConsumed` after every run. An
+estimate that names its own provenance is a different thing from a hard-coded rate, and the
+distinction is the point: a gate nobody can see the size of is a gate nobody can give informed
+consent at.
 
 **Aspect ratio and resolution interact.** Some combinations silently clamp. If a keyframe comes
 back at an unexpected size, check the pairing against the list above before blaming the prompt.

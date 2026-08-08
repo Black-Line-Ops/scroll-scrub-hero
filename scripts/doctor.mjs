@@ -1,6 +1,10 @@
 /* Preflight. Run this first, and whenever something is behaving oddly.
    Everything this checks is a thing that otherwise fails deep inside a run, often after
-   money has been spent - so it is worth the ten seconds. */
+   money has been spent - so it is worth the ten seconds.
+
+   The last section is the money view, and it is here for the same reason as the rest: the balance,
+   the rate table and the size of a default run are three facts that only matter together, and the
+   moment they are worth having is before anything has been ordered. */
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -9,11 +13,17 @@ import os from 'node:os'
 const ok = (m) => console.log(`  OK    ${m}`)
 const bad = (m, fix) => { console.log(`  MISS  ${m}`); if (fix) console.log(`        ${fix}`); return 1 }
 /* Something answered, but not what we expected. Worth printing and not worth failing on: the
-   route clearly exists, and preflight cannot judge further without spending money to find out. */
-const note = (m, extra) => { console.log(`  NOTE  ${m}`); if (extra) console.log(`        ${extra}`) }
+   route clearly exists, and preflight cannot judge further without spending money to find out.
+   `label` exists so a line that is bad news rather than a curiosity can say WARN while staying in
+   the same printed-but-not-fatal lane. It is a parameter rather than a fourth printer on purpose:
+   test/doctor-mask.test.mjs scans every `ok(`, `bad(` and `note(` call site for anything
+   key-shaped, and a new function name would quietly fall outside that guard. */
+const note = (m, extra, label = 'NOTE') => { console.log(`  ${label}  ${m}`); if (extra) console.log(`        ${extra}`) }
 let problems = 0
 
-/* Shared by every network check below. Short on purpose - this script promises ten seconds. */
+/* Shared by every network check below. Short on purpose - this script promises ten seconds.
+   One exception, and it is deliberate: the balance lookup keeps pricing.mjs's shorter 8s deadline,
+   because it is the one request here preflight is allowed to finish without. See it below. */
 const PROBE_TIMEOUT_MS = 15000
 
 console.log('\nscroll-scrub-hero preflight\n')
@@ -158,6 +168,14 @@ const ROUTES = [
   ['createTask', 'POST', 'https://api.kie.ai/api/v1/jobs/createTask'],
   ['Sol responses', 'POST', 'https://api.kie.ai/codex/v1/responses'],
   ['recordInfo', 'GET', 'https://api.kie.ai/api/v1/jobs/recordInfo?taskId=preflight-probe'],
+  /* Not a route the pipeline spends through - it is pricing.mjs's BALANCE_URL, duplicated for the
+     same reason the four above are duplicated from kie.mjs: it is module-private there. It earns
+     its place because a balance that comes back "unavailable" is deliberately not fatal, and this
+     row is what tells the user whether that was the endpoint moving or their key.
+     Probed unauthenticated while this row was added (2026-08-07): it answers HTTP 200 with body
+     code 401. The control is what makes that meaningful - the neighbouring /api/v1/common/credit
+     answers a real HTTP 404 - so a 404 here would mean the route had genuinely moved. */
+  ['credit balance', 'GET', 'https://api.kie.ai/api/v1/chat/credit'],
 ]
 
 async function probeRoute (method, url) {
@@ -177,6 +195,37 @@ async function probeRoute (method, url) {
     return { error: e.message }
   }
 }
+
+/* pricing.mjs is imported DYNAMICALLY and its absence is survivable, for two reasons pointing the
+   same way. This script is the first thing anyone runs, and a diagnostic that dies with a
+   module-resolution stack trace has failed at the only job it has: a missing file is something
+   preflight REPORTS, not something it throws. And it keeps doctor.mjs stageable the way the test
+   harness stages the other scripts - into a temp directory holding only itself and a stub kie.mjs
+   - which a static import would make impossible. Same pattern, and same reasoning, as
+   keyframes.mjs and tween.mjs. */
+let pricing = null
+let pricingProblem = ''
+try {
+  pricing = await import('./pricing.mjs')
+} catch (e) {
+  pricingProblem = e && e.code === 'ERR_MODULE_NOT_FOUND'
+    ? 'pricing.mjs is not next to this script'
+    : `pricing.mjs did not load (${(e && e.message) || e})`
+}
+
+/* The rate table, loaded QUIETLY: a rejected override is printed further down in this script's own
+   vocabulary rather than as a stray stderr line above the checks. Loading it here also means the
+   money view below is priced against the same table the rest of the pipeline will use, overrides
+   and all - a preflight quoting different numbers from the run would be worse than none. */
+const rates = pricing ? pricing.loadRates({ quiet: true }) : null
+
+/* Started here, awaited at the bottom, so it overlaps the route probes instead of adding a round
+   trip after them - preflight promises ten seconds and this is one more request to the same host.
+   It cannot throw (fetchBalance degrades to {known:false, reason}) and it cannot spend (it is a
+   GET of a balance), so there is nothing for the await to guard.
+   It keeps pricing.mjs's shorter 8s deadline rather than this file's 15s, deliberately: it is the
+   one check here that preflight is allowed to finish without, so it should be first to give up. */
+const balanceLookup = pricing ? pricing.fetchBalance({ rates }) : null
 
 /* No fetch means a Node older than 18, which the check at the top of this file has already said
    in one clear line. Four more MISS lines underneath it would only bury the real answer. */
@@ -214,6 +263,96 @@ try {
   ok(`current directory is writable (${process.cwd()})`)
 } catch (_) {
   problems += bad('current directory is not writable', 'cd somewhere you own and re-run.')
+}
+
+/* --- the money view ---
+   Everything above asks whether the pipeline CAN run. This asks what it will cost when it does,
+   and whether the account can cover it.
+
+   The worst failure this pipeline has is not a crash. It is running dry halfway: kie.ai has been
+   paid for the stills and segments that finished, the run has no hero to show for them, and the
+   money is gone. Restarting re-orders whatever state.json could not resume. That is exactly the
+   class of thing a preflight is for, and it is only catchable here, where the balance, the rates
+   and the size of a default run are all in scope at once.
+
+   Nothing in this section can spend. The balance lookup is a GET, and every figure below is
+   arithmetic over scripts/pricing.mjs's table - running doctor creates no image, no clip and no
+   Sol call. */
+
+if (!pricing) {
+  /* Counted as a problem, unlike everything else in this section. The other scripts degrade to
+     "cost not estimated" and still run; what a MISS here says is that the install is incomplete,
+     which is the thing preflight is for. */
+  problems += bad(`no cost view or balance check - ${pricingProblem}`,
+    'pricing.mjs ships next to this file. Re-copy scripts/ from the skill, whole.')
+} else {
+  /* Never fatal. Somebody who pinned a rate did it because ours is wrong for them, so quietly
+     falling back to ours would price their run at a number they had already rejected - which is
+     worth a WARN, and is not a reason to call the environment broken. */
+  for (const p of rates.problems) note(`rate override ignored - ${p}`, null, 'WARN')
+
+  const bal = await balanceLookup
+  /* Priced at the defaults of the three scripts - storyboard.mjs --steps 6, keyframes.mjs
+     --resolution 2K, tween.mjs --mode pro --duration 5 - so this is the bill for doing exactly
+     what the hint at the bottom of a clean run tells you to do. */
+  const run = pricing.estimateRun({ steps: 6, seconds: 5, mode: 'pro', resolution: '2K', rates })
+  /* A partial total is a FLOOR, not a total. Comparing a balance against one as though it were
+     the bill would understate what the run needs, so anything short of fully priced is not
+     compared - the total prints "at least ..." and names what it excluded, which is the honest
+     signal when the table cannot price a stage. */
+  const priced = run.known && !run.partial ? run : null
+
+  if (!bal.known) {
+    /* FAILS SOFT, ALWAYS. An unreachable billing endpoint is not a broken environment: every
+       check above can still pass and the pipeline can still run. The only thing missing is a
+       number preflight is allowed not to have, and a preflight that goes red over one of those
+       teaches people to ignore red. The route row above is where a MOVED endpoint shows up as a
+       problem - which is the difference this section relies on that row to draw. */
+    note(`balance unavailable - ${bal.reason}`,
+      'Not counted against this preflight: the run does not need this number, you do.')
+  } else if (bal.credits <= 0) {
+    /* A confirmed empty account is the one balance answer that IS a broken environment: the very
+       first createTask fails, and it fails after the interview has been sat through. */
+    problems += bad(`${pricing.formatBalance(bal)} - a run would fail at its first call`,
+      'Top up at kie.ai -> Credits. Nothing in this pipeline is free.')
+  } else if (priced && bal.credits < priced.credits.high) {
+    /* Against the HIGH end, because the high end is what running out mid-run is measured against.
+       formatBalance says how far short; it is the one thing allowed to render that comparison. */
+    note(pricing.formatBalance(bal, priced),
+      'Top up, or order less: fewer --steps, a shorter --duration, or --mode std.', 'WARN')
+  } else {
+    ok(pricing.formatBalance(bal, priced))
+  }
+
+  /* "checked: 2026-08-07" tells a reader in 2027 nothing unless they do the subtraction, so do it
+     here. The dates exist because this repo has already shipped a reference doc that claimed to
+     be verified over contracts that were wrong; a table nobody re-reads is the same trap wearing
+     a date. Only built-in rows carry one - a pinned rate reads "this run" and cannot go stale. */
+  const STALE_DAYS = 120
+  const dated = Object.values(rates.entries).map(e => Date.parse(e.checked)).filter(Number.isFinite)
+  const asOf = dated.length ? new Date(Math.min(...dated)) : null
+  const checkedOn = asOf ? asOf.toISOString().slice(0, 10) : ''
+  /* Clamped, because a machine whose clock sits behind the check date should print "today" rather
+     than a negative age - this is a staleness hint, not a measurement worth defending. */
+  const ageDays = asOf ? Math.max(0, Math.floor((Date.now() - asOf.getTime()) / 86400000)) : null
+  const howLong = ageDays === 0 ? 'today' : ageDays === 1 ? '1 day ago' : `${ageDays} days ago`
+  if (!asOf) {
+    note('every rate is pinned by you, so there is no built-in figure here to go stale')
+  } else if (ageDays > STALE_DAYS) {
+    note(`the built-in rates were last read from kie.ai on ${checkedOn} - ${howLong}`,
+      'Vendor prices move. Re-read the pages named below and update scripts/pricing.mjs,\n' +
+      '        or pin your own with SSH_RATES.', 'WARN')
+  } else {
+    ok(`rate table last read from kie.ai's own pages on ${checkedOn} (${howLong})`)
+  }
+
+  console.log('\n  what a default run costs, before you order any of it:\n')
+  for (const l of pricing.formatBreakdown(run)) console.log('    ' + l)
+  console.log('\n  every rate behind those figures, and the page each was read from:\n')
+  for (const l of pricing.formatRates(rates)) console.log('    ' + l)
+  if (rates.overrides.length) console.log(`\n    pinned by you: ${rates.overrides.join(', ')}`)
+  console.log('\n    Pin your own rates without editing the table:')
+  console.log('      SSH_RATES=\'{"video":{"pro":16},"image":{"2K":8}}\'    (PowerShell: $env:SSH_RATES=\'...\')')
 }
 
 console.log()

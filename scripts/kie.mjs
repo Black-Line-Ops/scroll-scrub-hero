@@ -244,8 +244,16 @@ export async function createTask (model, input, extra = {}) {
 }
 
 /* Poll to completion. Returns resultUrls[]. Throws with failMsg on a failed task so the caller
-   can retry that one item rather than the whole batch. */
-export async function pollTask (taskId, { timeoutMs = 600000, label = '' } = {}) {
+   can retry that one item rather than the whole batch.
+
+   onMeta receives the finished task record - the only place kie.ai reports creditsConsumed.
+   Callers use it to record what a run actually cost and reconcile that against what they
+   estimated. It was accepted by two callers and never invoked here, so every gate promising
+   "this run compares the real figure against the estimate" was making a promise the client could
+   not keep: precisely the defect this repo was audited for. Success only - a failed task is not
+   billed, and reporting a charge that did not happen is its own wrong number. A throwing callback
+   must not lose the URLs the caller already paid for, so it is isolated. */
+export async function pollTask (taskId, { timeoutMs = 600000, label = '', onMeta = null } = {}) {
   const t0 = Date.now()
   let lastState = ''
   while (Date.now() - t0 < timeoutMs) {
@@ -261,6 +269,12 @@ export async function pollTask (taskId, { timeoutMs = 600000, label = '' } = {})
       try { parsed = typeof d.resultJson === 'string' ? JSON.parse(d.resultJson) : (d.resultJson || {}) } catch (_) {}
       const urls = parsed.resultUrls || parsed.result_urls || []
       if (!urls.length) throw new KieError(`task ${taskId} succeeded but returned no resultUrls`)
+      if (typeof onMeta === 'function') {
+        try { onMeta(d) } catch (e) {
+          console.error(`  (recording the cost of ${label || taskId} failed: ${e.message} - the ` +
+            'generation itself succeeded and is not affected)')
+        }
+      }
       return urls
     }
     if (d.state === 'fail') {

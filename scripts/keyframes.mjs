@@ -10,12 +10,50 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { requireKey, uploadFile, createTask, pollTask, download, state, args, confirm } from './kie.mjs'
+
+/* Any script path this file PRINTS has to be runnable from the scratch directory the docs tell you
+   to stay in, which is never the skill's scripts/ folder - so it is absolute. fileURLToPath rather
+   than import.meta.dirname, which only exists from Node 20.11 and this skill supports 18. Same
+   reasoning, and the same two lines, as tween.mjs. */
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+
+/* The rate table is loaded at RUNTIME rather than with a static import, and the reason is worth
+   stating because a static import would read as the tidier choice.
+
+   stageScript (test/helpers/harness.mjs:101) copies the script under test into a sandbox holding
+   only itself and a generated stub kie.mjs, so a static `import './pricing.mjs'` would kill every
+   keyframe test with ERR_MODULE_NOT_FOUND before it reached the code the test was written to
+   check - including the tests that exist to prove this script refuses to spend.
+
+   The general form of that is the real reason. The gate below is the CONFIRMATION, not the number.
+   Losing the rate table has to cost this run its figures, and say so plainly, and never cost it
+   the prompt. */
+let pricing = null
+let pricingProblem = ''
+try {
+  pricing = await import('./pricing.mjs')
+} catch (e) {
+  /* The missing-file case gets a short sentence of its own because Node's own message for it is
+     three absolute paths long, and this string is printed inside a cost line someone has to read
+     before answering y/n. */
+  pricingProblem = e && e.code === 'ERR_MODULE_NOT_FOUND'
+    ? 'pricing.mjs is not next to this script'
+    : `pricing.mjs did not load (${(e && e.message) || e})`
+}
+
+/* Loaded once and threaded through every pricing call below, so the cost line, the balance and the
+   end-of-run reconciliation are all quoting the same table - including any override the operator
+   pinned for this run. */
+const rates = pricing ? pricing.loadRates() : null
 
 const a = args()
 if (!a.storyboard) {
   console.error('usage: node keyframes.mjs --storyboard storyboard.json [--ref <photo>] [--out keyframes/]\n' +
-    '                        [--only 3,5] [--prompt "override for --only"] [--aspect 16:9] [--resolution 2K] [--yes]')
+    '                        [--only 3,5] [--prompt "override for --only"] [--aspect 16:9] [--resolution 2K] [--yes]\n\n' +
+    '  --yes   skip the confirmation prompt. Required when a script, CI or Claude runs this,\n' +
+    '          because there is no keyboard attached to answer the prompt.')
   process.exit(1)
 }
 requireKey()
@@ -102,13 +140,84 @@ if (stepIds.some((id, i) => id !== i + 1)) {
 }
 
 if (toGenerate.length) {
+  /* toGenerate, not sb.steps and not planned: the number on this line has to be the number of
+     images this run will actually pay for, or it teaches people to stop reading it. A cached
+     keyframe and a supplied --ref2 photo are both already excluded above. */
+  const est = pricing ? pricing.estimateKeyframes({ count: toGenerate.length, resolution, rates }) : null
+  /* est.known is false for a --resolution the table has no row for, and then there is no row to
+     quote provenance from; every other path that reaches here has one. */
+  const rateRow = est && est.known ? rates.entries[`image.${resolution}`] : null
+  /* fetchBalance is deliberately NOT handed requireKey()'s return value. It reads KIE_API_KEY
+     itself, and the test harness's stub requireKey() answers with a fake key while the real
+     variable is stripped from the child's environment - passing it through would turn an offline
+     test into a live request to kie.ai. One attempt, 8s deadline, never throws. */
+  const bal = pricing ? await pricing.fetchBalance({ rates }) : null
+
+  /* --only regenerates whatever it names, cached or not (see the loop below), so on a re-run some
+     of these images are being bought a second time. That is usually the intent - a frame came back
+     wrong - but it is the one case where the count above is larger than "images you don't have". */
+  const again = only ? toGenerate.filter(s => st.frames[s.id]).map(s => s.id) : []
+
+  /* The money lines, in the same shape and the same order tween.mjs prints them: what it should
+     cost, how that number was arrived at, who says so, and whether the account covers it. The two
+     paid scripts in this pipeline asking differently would be its own defect - an operator should
+     not have to re-learn the gate between step 2 and step 3. formatCost is pricing.mjs's only
+     renderer for a cost figure, so this reads the same here as everywhere else that quotes one. */
+  const costLines = []
+  if (est && est.known) {
+    costLines.push(`  cost        ${pricing.formatCost(est)}   <- an ESTIMATE, not a quote`)
+    costLines.push(`              ${est.basis}`)
+    costLines.push(`              confidence ${est.confidence}, checked ${rateRow.checked}`)
+    costLines.push(`              source ${rateRow.source}`)
+  } else if (est) {
+    costLines.push(`  cost        ${pricing.formatCost(est)}`)
+  } else {
+    costLines.push(`  cost        not estimated - ${pricingProblem}`)
+  }
+  if (bal) costLines.push(`  account     ${pricing.formatBalance(bal, est)}`)
+
+  /* Checked against the HIGH end, and only when both figures are real - est.known and est.partial
+     exist precisely so a floor is never mistaken for a total. */
+  const shortOfCredit = !!(bal && bal.known && est && est.known && !est.partial &&
+    est.credits && bal.credits < est.credits.high)
+
   const costLine =
     `\nAbout to generate ${toGenerate.length} keyframe still(s)\n` +
     `  model       gpt-image-2-image-to-image\n` +
     `  size        ${resolution} at ${aspect}\n` +
     `  keyframes   ${toGenerate.map(s => s.id).join(', ')}\n` +
-    '\nStills are the cheap half of this pipeline, but they are not free. Per-image pricing\n' +
-    'is on kie.ai; this script does not know your rate and will not invent one.'
+    costLines.join('\n') + '\n' +
+    (again.length
+      ? `\n--only re-bills: keyframe ${again.join(', ')} already on disk, so this pays for ` +
+        `${again.length === 1 ? 'it' : 'them'} again.\n`
+      : '') +
+    (realAfterPending
+      ? `\nKeyframe ${lastId} is the finished photo you supplied: copied in, not generated, not billed.\n`
+      : '') +
+    (shortOfCredit
+      ? '\n!! NOT ENOUGH CREDIT for this run, per the account line above. Stills are billed one at\n' +
+        '   a time as the run proceeds, so starting anyway buys some frames and leaves the contact\n' +
+        '   sheet - the approval gate this step exists for - with holes in it. Top up first, or cut\n' +
+        '   this run down with --only.\n'
+      : '') +
+    '\nStills are the cheap half of this pipeline, but they are not free and nothing downstream\n' +
+    'refunds one nobody wanted. ' +
+    /* The two halves of this paragraph have to disagree, because in one case there is an estimate
+       above and in the other there is not. A tail pointing at a rate table the script has just
+       said it could not load would be the defect this repo was audited for: prose asserting
+       something the code did not do. */
+    (pricing
+      ? 'The cost above is an estimate from the rate table in\n' +
+        'pricing.mjs, which names the page every rate was read off and how to pin your own:\n' +
+        `  node "${path.join(HERE, 'pricing.mjs')}"\n`
+      : 'Without pricing.mjs this script does not know your\n' +
+        'rate and will not invent one; kie.ai publishes current gpt-image-2 pricing.\n') +
+    'What gets RECORDED either way is whatever kie.ai reports as creditsConsumed, per image, in\n' +
+    `  ${stateFile}\n` +
+    (pricing
+      ? 'and this run compares that against the estimate when it finishes, so the price of a still\n' +
+        'ends up measured rather than assumed.'
+      : 'so a run that goes unpriced here can still be priced afterwards.')
   console.log(costLine)
   if (!await confirm('Generate these stills?', { yes: !!a.yes, whatItCosts: costLine })) {
     console.log('aborted - nothing generated, nothing charged')
@@ -167,6 +276,11 @@ const ANCHOR = '\n\nThe first attached image is the real location: keep its came
 const CONTINUITY = ' The second attached image is the previous step; this frame must look like that ' +
   'same photograph with the described work done, not a different property.'
 
+/* Which stills THIS process paid for, as against which ones state happens to hold a figure for.
+   They differ on every --only re-run: the earlier record, credits and all, is still on disk and
+   must not be counted as money spent today. Same distinction tween.mjs draws. */
+const generated = []
+
 for (const step of sb.steps) {
   if (only && !only.includes(step.id)) continue
   if (usingRealAfter && step.id === lastId) continue
@@ -183,14 +297,30 @@ for (const step of sb.steps) {
   const taskId = await createTask('gpt-image-2-image-to-image', {
     prompt, input_urls: inputs, aspect_ratio: aspect, resolution,
   })
-  const urls = await pollTask(taskId, { label: `kf${step.id}` })
+  /* kie.ai reports creditsConsumed on the finished task (references/kie-api.md:75 shows it in the
+     recordInfo body) and this step used to discard it, which left the estimate printed above with
+     nothing to be checked against - an estimate nobody ever compares to a bill is how a rate table
+     goes stale with no one noticing. It arrives through a callback because pollTask resolves to the
+     result URLs and its other callers index that array; the same call shape tween.mjs uses.
+
+     Note what this does NOT claim: as of writing, kie.mjs's pollTask takes {timeoutMs, label} and
+     never invokes onMeta, so meta stays null and nothing is recorded until that lands. That is the
+     designed-for case, not a broken one - the end-of-run line below then says the run was
+     unmeasured, which is true, instead of inventing a figure. */
+  let meta = null
+  const urls = await pollTask(taskId, { label: `kf${step.id}`, onMeta: (info) => { meta = info } })
   const dest = path.join(outDir, `keyframe-${String(step.id).padStart(2, '0')}.png`)
   await download(urls[0], dest)
 
   /* Persist the paid-for file IMMEDIATELY. Waiting until after the re-upload means a failure
      in between throws away an image that has already been billed. */
   st.frames[step.id] = { file: dest, prompt, taskId }
+  /* Assigned after the object is rebuilt, so a --only re-render never keeps the previous
+     render's figure alongside a new image. */
+  const credits = Number(meta?.creditsConsumed)
+  if (Number.isFinite(credits)) st.frames[step.id].creditsConsumed = credits
   state.save(stateFile, st)
+  generated.push(step.id)
 
   try {
     const rec = await uploadFile(dest)
@@ -200,6 +330,46 @@ for (const step of sb.steps) {
     console.log(`  (saved, but re-upload failed: ${e.message} - it will be uploaded when needed)`)
   }
   console.log(`  -> ${dest}`)
+}
+
+/* What the run actually cost, read back out of state rather than from a running tally, so this
+   figure and the one a later run quotes cannot drift apart. Same approach as tween.mjs.
+
+   The estimate below is rebuilt against the images kie.ai actually PUT A FIGURE ON, not the ones
+   that were ordered. Those sets are usually identical, and when they are not - a figure arrives for
+   some renders and not others - comparing a partial bill with a whole order would report the table
+   as wildly overpriced and hand out a "real rate" that is nothing of the kind. */
+const creditsOf = (id) => {
+  const c = st.frames[id]?.creditsConsumed
+  return Number.isFinite(c) ? c : null
+}
+/* creditsConsumed is a MEASUREMENT, and formatCost renders Estimates - it would dress this in a
+   "~" and a range it does not have. So the conversion happens here, through the same creditUsd row
+   the estimate used, which is why pinning creditUsd moves the prediction and the bill together.
+   The dollars are an upper bound either way: kie.ai's bonus top-up SKUs can make a credit cost up
+   to ~10% less, and the table's own note says so. (Lifted from tween.mjs, deliberately: the two
+   scripts must report a bill the same way as well as ask for one the same way.) */
+const usdOf = (credits) => {
+  const cu = rates && rates.entries.creditUsd
+  return cu ? ` (~$${(credits * cu.low).toFixed(2)})` : ''
+}
+
+const billed = generated.filter(id => creditsOf(id) !== null)
+if (billed.length) {
+  const spent = billed.reduce((n, id) => n + creditsOf(id), 0)
+  console.log(`\ncredits this run: ${spent}${usdOf(spent)} for ${billed.length} still(s) at ${resolution} ` +
+    `(${(spent / billed.length).toFixed(1)} per image)`)
+  if (pricing) {
+    /* One line saying the table held when the bill landed inside the estimate's tolerance; the
+       measured rate and the env var that pins it when it did not; nothing at all when there is
+       nothing to compare. It is spliceable unconditionally, so there is no branch here. */
+    const actual = pricing.estimateKeyframes({ count: billed.length, resolution, rates })
+    const cal = pricing.calibrate(actual, { credits: spent, units: billed.length }, { rates })
+    for (const line of pricing.formatCalibration(cal)) console.log(line)
+  }
+} else if (generated.length) {
+  console.log('\ncredits: kie.ai reported no creditsConsumed for these stills, so this run is ' +
+    'unmeasured - the estimate above stands, unchecked')
 }
 
 /* Every string on this page came from somewhere untrusted: the labels and captions are Sol's

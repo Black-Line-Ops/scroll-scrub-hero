@@ -8,6 +8,16 @@ convention (Codex among them) find their way there.
 
 Turn one photo of a real place into a scroll-scrubbed hero where the camera holds still and the subject transforms.
 
+## Start with the interview, not the flags
+
+The user is not expected to know what a keyframe is, what first/last-frame tweening means, or
+what `--mode pro` buys. **Part 1 of [`SKILL.md`](SKILL.md) is a six-question interview** — two
+batched rounds — that collects the decisions they actually have, phrased as outcomes and priced.
+Run it before touching a script. Never ask someone to pick a flag value.
+
+The interview also settles the budget, which matters because the flags it sets are the difference
+between a ~$1.55 run and a ~$8.68 one. Show the forecast and wait for a yes before generating.
+
 ## Before you run anything
 
 This file uses the same working-directory contract as [`SKILL.md`](SKILL.md), because the two
@@ -39,15 +49,25 @@ node "$SKILL/scripts/doctor.mjs"
 
 It checks Node 18+, ffmpeg, ffprobe, that this ffmpeg has the libwebp encoder the last stage
 needs, the `KIE_API_KEY` environment variable, whether kie.ai accepts that key, and whether every
-route the pipeline calls still exists — then prints the exact fix for whatever is missing. Run it
-before the first command in any session; the alternative is discovering a missing dependency
-partway through a run that has already cost the user money.
+route the pipeline calls still exists — then prints the exact fix for whatever is missing. It
+also prints the user's credit balance and what a default run costs, which is the one check that
+catches the worst failure this pipeline has: running dry halfway, with the finished stages paid
+for and no hero to show. Run it before the first command in any session; the alternative is
+discovering a missing dependency partway through a run that has already cost the user money.
 
 ## Things worth knowing before you drive this
 
 **It spends the user's money.** Two steps call paid APIs. Both ask for confirmation, and both
 take `--yes` because there is no keyboard when an agent is running them. Only pass `--yes`
 once the user has actually approved — treat it as signing for the cost, not as boilerplate.
+Both gates print a priced estimate with its source and the account balance before asking, so
+"approved" should mean the user saw a number. A third step, `storyboard.mjs`, spends without a
+gate; it is under four cents and it prints the forecast for the whole run first.
+
+**Quote figures from the scripts, not from memory.** `node "$SKILL/scripts/pricing.mjs"` prints
+the rate table with the page each rate was read from. Rates are dated estimates, not quotes, and
+what actually gets recorded is kie.ai's own `creditsConsumed` per item. When you report what a
+run cost, report the measured figure from `_state.json`, not the estimate you quoted up front.
 
 **There is a human gate in the middle, and it is not optional.** The pipeline renders every
 still first and stops at a contact sheet. Do not start the expensive step until the user has
@@ -64,7 +84,8 @@ it into a file in the user's repo, and do not include it in a command you show t
 
 ## First command
 
-From the scratch directory set up above:
+Once the interview has settled the steps, quality and aspect ratio, and the user has seen the
+forecast. From the scratch directory set up above:
 
 ```bash
 node "$SKILL/scripts/storyboard.mjs" --ref /abs/path/photo.jpg --idea "bare grass to finished pool" --steps 6
@@ -80,6 +101,7 @@ you already have.
 
 Read these when the task calls for it rather than up front:
 
-- `references/kie-api.md` — exact endpoints, model strings, request shapes and the gotchas
+- `references/kie-api.md` — exact endpoints, model strings, request shapes, the cost model with
+  the provenance of every rate, how to override them, and the gotchas
 - `references/prompting.md` — writing prompts that survive a first/last-frame chain
 - `references/hero-wiring.md` — the drop-in contract and a complete scrub engine

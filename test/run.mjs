@@ -23,7 +23,11 @@ if (!suites.length) {
 /* A skipped test and a passing test are indistinguishable from the exit code, and several of the
    frame tests skip themselves when ffmpeg is unusable. A mutation run measured what that costs:
    with ffmpeg off PATH, deleting build-frames.mjs's stale-config removal OR its trailing-frame pop
-   leaves the suite exiting 0 at 164 pass / 11 skipped. Both fixes go unverified and nothing says so.
+   still leaves the suite exiting 0, with those 11 tests skipped rather than red. Both fixes go
+   unverified and nothing about the exit code says so.
+   (Deliberately no pass count here. It was written as an absolute twice and was stale both times
+   within a day, because every test added moves it - a comment that rots is how this repo got
+   audited in the first place. The 11 is the load-bearing number and it tracks the gated tests.)
 
    So say so, loudly, before the run - and let CI and a pre-release check demand the real thing with
    SSH_REQUIRE_FFMPEG=1 rather than trusting a green tick that skipped the ffmpeg paths. */

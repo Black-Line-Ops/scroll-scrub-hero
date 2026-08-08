@@ -12,6 +12,7 @@ const a = args()
    purpose. A validation guard that only works when its input is already correct is not a guard. */
 if (typeof a.ref !== 'string' || typeof a.idea !== 'string' || !a.idea.trim()) {
   console.error('usage: node storyboard.mjs --ref <photo> --idea "<idea>" [--steps 6] [--ref2 <after-photo>] [--out storyboard.json]')
+  console.error('       forecast-only, changes nothing here: [--resolution 2K] [--mode pro|std|4K] [--duration 5]')
   process.exit(1)
 }
 requireKey()
@@ -25,6 +26,64 @@ if (!Number.isInteger(steps) || steps < 2) {
   process.exit(1)
 }
 const out = a.out || 'storyboard.json'
+
+/* ---------- what the WHOLE run is going to cost ----------
+
+   This is the first script in the pipeline that spends anything, and it is also the earliest
+   point at which the END of the pipeline is priceable: --steps fixes how many stills
+   keyframes.mjs will render and how many segments tween.mjs will order, so the full bill can be
+   quoted here instead of discovered three stages and one approval later.
+
+   None of it is being approved here. keyframes.mjs and tween.mjs each still ask before they
+   spend, and the only thing this script buys is the single Sol call - much the smallest line in
+   the forecast, and the reason there is no y/n prompt in front of it. A blocking gate over a
+   figure that small is friction that teaches people to answer the next one by reflex, and the
+   next one is the video bill.
+
+   pricing.mjs is loaded dynamically and its absence is survivable, for two separate reasons. A
+   forecast is advisory - the day it can stop a storyboard from being written it has stopped
+   being a help. And the offline harness stages this script into a temp directory with only a
+   generated kie.mjs beside it (test/helpers/harness.mjs, stageScript), so a static import would
+   turn a missing sibling into ERR_MODULE_NOT_FOUND on paths that never spend a cent. The load
+   failure is printed rather than swallowed: a cost line that quietly disappears is worse than
+   one that was never written, because nobody notices it is gone. */
+let pricing = null
+try {
+  pricing = await import('./pricing.mjs')
+} catch (e) {
+  console.log(`(no cost forecast - scripts/pricing.mjs did not load: ${String(e && e.message).split('\n')[0]})`)
+}
+
+/* Forecast-only inputs. They change nothing this script does; they exist so the number quoted
+   below describes the run that is actually going to be ordered. The defaults are the defaults of
+   the scripts that will spend - keyframes.mjs `--resolution 2K`, tween.mjs `--mode pro
+   --duration 5` - and they have to be kept in step with them, because a run forecast at pro and
+   then ordered at 4K is understated by 3.7x. An unknown mode or resolution is not fatal here:
+   pricing.mjs prices what it can and names what it could not, which is the honest answer for a
+   number nobody is being asked to approve. */
+const fcResolution = a.resolution || '2K'
+const fcMode = a.mode || 'pro'
+const fcSeconds = Number(a.duration ?? 5)
+
+let forecast = null
+if (pricing) {
+  forecast = pricing.estimateRun({
+    steps,
+    seconds: fcSeconds,
+    mode: fcMode,
+    resolution: fcResolution,
+    /* keyframes.mjs copies a supplied "after" photo in rather than rendering the final still, so
+       --ref2 takes one image off the bill. It reads that from sb._meta.ref2, which is written
+       from this same flag at the bottom of this file. */
+    realAfter: !!a.ref2,
+  })
+  console.log(`\nforecast for the whole run - ${forecast.basis || `${steps} steps`}:`)
+  for (const l of pricing.formatBreakdown(forecast)) console.log('  ' + l)
+  console.log('\n  A forecast of work not yet approved. Only the storyboard line is being spent now;')
+  console.log('  keyframes.mjs and tween.mjs each ask again before they generate anything.')
+  /* Never throws, never retries, capped at 8s. A gate is allowed to proceed without this. */
+  console.log('  ' + pricing.formatBalance(await pricing.fetchBalance(), forecast))
+}
 
 const SYSTEM = `You write storyboards for scroll-scrubbed website heroes.
 
@@ -201,4 +260,14 @@ console.log(`subject: ${sb.subject}`)
 console.log(`camera:  ${sb.camera}\n`)
 sb.steps.forEach(s => console.log(`  ${String(s.id).padStart(2)}. ${String(s.label).padEnd(22)} ${s.caption}`))
 console.log(`\n${sb.steps.length} keyframes -> ${sb.steps.length - 1} video segments -> ${sb.steps.length - 1} scrub clips`)
+/* The forecast again, minus the one line that has now actually been bought. Restated because
+   this is the moment somebody decides whether to carry on, and the block at the top has a Sol
+   call and a step list between it and here. Filtered by kind rather than sliced by position, so
+   a reordering inside pricing.mjs cannot silently drop a stage out of the number. The label goes
+   in `prefix` rather than after the figure: formatCost's own tail can carry a caveat and an
+   "excludes:" clause, and anything appended behind those reads as part of them. */
+if (forecast) {
+  const ahead = pricing.combine(forecast.parts.filter(p => p.kind !== 'storyboard'), { kind: 'run' })
+  console.log(pricing.formatCost(ahead, { prefix: 'Still to approve, across keyframes.mjs then tween.mjs: ' }))
+}
 console.log('Read the steps against the photo before generating keyframes.')

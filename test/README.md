@@ -67,6 +67,10 @@ on load, so importing it would make the suite hit the network.
 | `stale-config.test.mjs` | a run that dies mid-loop takes the **previous** run's `config.js` with it, so no config ever describes frames that are not on disk |
 | `build-frames-steps.test.mjs` | a storyboard with motions but no steps is refused above the clip loop, before any ffmpeg time is spent |
 | `image-url-unwrap.test.mjs` | `image_url` reaches Sol as a URL **string**, not as `uploadFile`'s `{url, uploadedAt}` record — for `--ref` and `--ref2` alike, and no record leaks in by another route |
+| `pricing-estimates.test.mjs` | the credit→USD conversion and the 1000 credits = $5.00 anchor; every rate pinned at its figure; every estimator at pinned credits *and* dollars; a range never inverts and never renders a real charge as `$0.00`; an unpriced row stays **unknown** instead of counting as zero |
+| `pricing-balance.test.mjs` | the balance lookup **fails soft** — a dead network, a 401, an HTML interstitial, a garbage body and a lookup that never answers each degrade to *unknown* without throwing, without blocking and without inventing a number; one attempt, one URL, no retry; the key never reaches a reason string |
+| `pricing-calibration.test.mjs` | measured `creditsConsumed` against the table: units are **seconds** not segments, the verdict is measured from the nearest **edge** of a range, a material divergence is named and turned into a pinnable rate, and comparing *ordered* against *billed* is pinned as the thing that fakes one |
+| `spend-gate-cost.test.mjs` | the count each gate hands the pricer — `--only`, cached keyframes, a supplied `--ref2` photo and segments already on disk all price **the work that will actually run**; `--yes` still carries a run past the gate and `confirm()`'s no-TTY branch still refuses |
 
 ## Why `retry-policy.test.mjs` is the one to not delete
 
@@ -150,6 +154,64 @@ deleting the `--only` guard fails 5, deleting the `config.js` removal fails 2 (w
 fails 2, one of them with the exact `Cannot read properties of undefined (reading 'find')` the
 guard replaced.
 
+## The four money files, and the one thing each is really standing on
+
+`scripts/pricing.mjs` decides the figure a person reads immediately before answering y/n. It
+arrived untested from this directory's point of view — it ships its own `--self-test`, and that
+self-test is a good one, but it lives **inside the file it checks**. Anyone moving a rate has both
+numbers in front of them, so the one failure that matters most — a figure changing without anyone
+noticing — can be made consistent in a single edit and the check goes green having proved that
+`pricing.mjs` agrees with `pricing.mjs`.
+
+- **`pricing-estimates.test.mjs`** — the discriminating asset is the `PINNED` table at the top,
+  which writes every rate out again **somewhere else**. Moving a rate now means touching two files
+  and one of them says out loud that the number is supposed to be stable. The other half of the
+  file is about what a *soft* number is allowed to look like: `sol.call` is a genuine 0.84–6.72
+  range and it has to survive rendering as `~1-7 credits (~$0.004-$0.034)`. Collapsing that to two
+  decimals prints `$0.00` next to a real charge, which is the one rendering that teaches somebody
+  to stop reading the cost line — so the *absence* of `$0.00` is asserted, not just the presence of
+  the range.
+- **`pricing-balance.test.mjs`** — every case asserts two things at once: the right answer, and
+  that getting it wrong is **survivable**. `known:false` plus a reason is a pass; a throw is a
+  failure and so is a wait. The hang case is the one that is easy to leave out and the nastiest in
+  practice: a lookup with no deadline blocks the y/n prompt behind it with no message at all, so
+  the test drives a `fetchImpl` that only settles when the abort signal fires and asserts the wall
+  clock.
+- **`pricing-calibration.test.mjs`** — three traps, each with its own test. **Units are seconds**
+  (counting segments instead turns a correct 18 credits/second into 90 and suggests pinning it);
+  the comparison is against the **nearest edge** of a range, because a range is a claim that the
+  truth is inside it; and the estimate must cover the segments that were **billed**, not the ones
+  that were **ordered**. That last one has a signature worth knowing: the wrong composition reports
+  the table 40% high *and* recommends pinning 18 credits/second — the rate already in the table. A
+  suggestion to replace a rate with itself is asserted directly.
+- **`spend-gate-cost.test.mjs`** — the pricer can be perfectly right and the gate still lie, because
+  the gate's job is to hand it the right **count**. `--only` is the case that matters: an operator
+  narrows a re-run to one bad frame, and if the line quotes the whole storyboard the number is six
+  times the truth. That is not a harmless over-statement — it is the number they will remember, so
+  the next real figure gets read past, and so does the one that should have alarmed them. Cached
+  keyframes, a supplied `--ref2` photo and segments already on disk are the same handoff reached
+  three other ways.
+
+Validated the same way as everything above: **twelve** reverts in a scratch copy, each re-run.
+Dividing `creditUsd` by ten fails 10; nudging `image.2K` from 10 to 12 fails 7; dropping the
+`Math.min/max` that straightens a backwards `[low, high]` override fails 1; making `keyframes.mjs`
+price `sb.steps.length` instead of `toGenerate.length` fails 7, one of them printing *"About to
+generate 2"* directly above *"cost ~60 credits"*; the same change in `tween.mjs` fails 3; removing
+`fetchBalance`'s `catch` fails 3 and letting an unrecognised body default to `0` fails 1; pinning
+`calibrate()`'s verdict to `true` fails 6 and switching it to a midpoint comparison fails 1;
+counting segments instead of seconds fails 4; collapsing the sub-cent range to two decimals fails 2;
+letting an unpriceable order fall through to zero credits fails 3; and the two that matter most —
+making `confirm()`'s no-TTY branch `return true` fails **20**, and deleting `if (yes) return true`
+fails 4 with *"--yes has to actually confirm, or nothing scripted can ever run this"*.
+
+One thing found and **not** fixed, because these files may not edit `scripts/`:
+`observedFromSegments()` returns `{credits: null}` when nothing was billed, and handing that
+straight to `calibrate()` reads as a measured **zero** — `Number(null)` is `0` and `0` is finite —
+which would announce the rate table 100% high. Both callers gate on `billed.length` before they
+get there, so it is unreachable today. `pricing-calibration.test.mjs` pins the `null` sentinel as
+the shape callers must keep checking and says why in a comment; it deliberately does not pin the
+edge itself, so hardening `calibrate()` later will not turn a test red.
+
 ## How the money is kept out
 
 Three mechanisms, in `test/helpers/harness.mjs`.
@@ -172,6 +234,27 @@ quietly; it throws with the child's whole output attached.
 environment. If a test somehow reached the real client despite the stub, there is nothing in
 scope for it to spend with.
 
+### The one deliberate exception, and why it is not a hole
+
+`spend-gate-cost.test.mjs`'s `--yes` test writes its **own** `kie.mjs` over the generated one. It
+has to: mechanism 2 treats the word `BILLABLE` as a failed test, which is correct everywhere else
+and useless in the one test where **reaching** the paid call is the assertion — that is the only
+evidence that `--yes` still confirms rather than being quietly ignored.
+
+The replacement re-exports the same real `args`, `confirm` and `state`, makes no network call of
+any kind, and marks `createTask` / `pollTask` / `download` with `PAST-THE-GATE:` instead. Mechanism
+3 is untouched, so the child still has no credential, and mechanism 2 stays armed for every other
+test in that file. Two tests in that file exist purely to keep the exception honest: the same run
+**without** `--yes` must not print `PAST-THE-GATE`, and `confirm()` is driven in-process to prove
+the no-TTY branch still answers *no*.
+
+Also worth knowing when adding to that file: the pricing suites and the gate suites want **opposite
+things** from the sandbox. `stageScript()` deliberately does not copy `pricing.mjs` in, so most
+tests exercise the degraded *"pricing.mjs is not next to this script"* path — the gate has to keep
+asking even with no rate table. `spend-gate-cost.test.mjs` copies it in on purpose, and blanks
+`SSH_RATES` / `SSH_RATES_FILE` in the child so a rate pinned on the developer's machine cannot
+reprice the assertions.
+
 `kie-client.test.mjs` is the one suite that imports `scripts/kie.mjs` directly, because
 `uploadFile` is a real export. It replaces `globalThis.fetch` with a recorder that answers every
 request itself and asserts the URL, so nothing leaves the process there either.
@@ -189,8 +272,12 @@ contributor without it (or with a build lacking `libwebp`) gets a **named skip**
 
 A skipped test and a passing test look identical from the exit code, and that gap was measured
 rather than assumed: with ffmpeg off `PATH`, **deleting** `build-frames.mjs`'s stale-config removal
-*or* its trailing-frame pop still leaves the suite exiting 0 at 167 pass / 11 skipped. Both fixes go
-unverified and nothing about a green tick says so.
+*or* its trailing-frame pop still leaves the suite exiting 0, with **11 tests skipped** instead of
+red. Both fixes go unverified and nothing about a green tick says so.
+
+(No pass count quoted, on purpose. It was written as an absolute here and in `run.mjs`, the two
+disagreed with each other, and both were stale within a day — every test added moves it. The 11 is
+the number that means something.)
 
 So `run.mjs` prints a loud banner before the run naming exactly what is not covered, and:
 

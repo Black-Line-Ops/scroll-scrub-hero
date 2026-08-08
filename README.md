@@ -135,7 +135,9 @@ node "$SKILL/scripts/doctor.mjs"
 
 It verifies Node, ffmpeg, that your ffmpeg can actually encode WebP, your key, that kie.ai
 accepts it, and that every route the pipeline calls still exists — and prints the exact fix for
-anything missing. The scripts only ever READ the key from the environment — they never write it anywhere. Your
+anything missing. It then shows the money: your credit balance in credits and dollars, what a
+default run costs, and every rate with the page it was read from. None of that spends anything.
+The scripts only ever READ the key from the environment — they never write it anywhere. Your
 shell may still record the command in its history: on macOS/Linux a leading space usually
 keeps it out, and the PowerShell `SetEnvironmentVariable` form stores it in your user
 environment rather than a file.
@@ -145,9 +147,12 @@ environment rather than a file.
 Easiest way is to just ask Claude, in a project where the skill is installed:
 
 > Build me a scroll hero from `photos/backyard.jpg` — bare grass through to a finished pool
-> with water in it, six steps.
+> with water in it.
 
-Claude reads the skill and drives the pipeline, stopping at the contact sheet for your approval.
+You do not need to know what a keyframe is. Claude runs a short interview first — six
+multiple-choice questions about what you want, each option priced, each with a recommended
+default you can just take — then shows you the forecast, drives the pipeline, and stops at the
+contact sheet for your approval before anything expensive happens.
 
 To drive it by hand instead — **run all four from the same scratch directory**, never from inside
 the skill folder, and use absolute paths for anything outside it:
@@ -181,19 +186,36 @@ This matters more than any setting.
 - **Even, flat light.** Harsh shadows move as the model invents, which reads as a time jump.
 - **One clear subject area** that will change, with everything else static.
 - **Two photos are better than one.** If you have a genuine before *and* after of the same
-  view, pass both (`--ref2`) — the pipeline pins the last keyframe to the real finished photo
-  instead of imagining it.
+  view, pass the second to `storyboard.mjs --ref2` — the pipeline pins the last keyframe to the
+  real finished photo instead of imagining it, and copies it in rather than paying to generate
+  it. (`--ref2` goes on `storyboard.mjs` only; `keyframes.mjs` reads it back out of
+  `storyboard.json`.)
 
 ## Cost
 
-You pay kie.ai directly for what you generate. A typical six-step hero is a handful of stills
-plus five video segments — the stills are cheap, the video is the real cost. Two habits keep it
-sane: approve the contact sheet before tweening, and regenerate single items (`--only 3`)
-rather than whole batches. Check current per-model pricing on kie.ai — the scripts deliberately
-do not hard-code a rate, so they print exactly what is about to be generated rather than a dollar
-figure, and wait for confirmation before spending. What they do record is whatever kie.ai reports
-as `creditsConsumed`, per segment, in `segments/_state.json`, so what a run cost is something you
-can look up afterwards instead of estimate.
+You pay kie.ai directly for what you generate. **A typical six-step hero is about $2.55** — a
+handful of stills at 5 cents each, plus five video segments at about 45 cents each. The stills
+are cheap; the video is the whole bill.
+
+| Six steps, 2K stills, 5 s clips | Estimate |
+|---|---|
+| Rough test (`--mode std`, 1280×720) | ~$2.05 |
+| Final (`--mode pro`, 1920×1080) — the default | **~$2.55** |
+| `--mode 4K` (3840×2160) | ~$8.68 |
+
+Four steps is about $1.55 and ten is about $4.55, at final quality. Every figure here is an
+**estimate** from a dated rate table read off kie.ai's own pages on 2026-08-07 — not a quote.
+
+Before it spends, each script prints what it is about to generate, what that should cost in
+credits and dollars, the arithmetic behind the number, the page the rate came from, and your
+account balance — then waits for a yes. `node scripts/doctor.mjs` shows all of that for free
+before you start. What gets *recorded* is whatever kie.ai reports as `creditsConsumed`, per item,
+in `keyframes/_state.json` and `segments/_state.json`; the run compares that against the estimate
+when it finishes and tells you how to pin your own rate if the table is off for your account.
+
+Two habits keep it sane: approve the contact sheet before tweening, and regenerate single items
+(`--only 3`) rather than whole batches. The full cost model, with the provenance of every rate
+and how to override them, is in [`references/kie-api.md`](references/kie-api.md#what-it-costs).
 
 ## If something looks wrong
 

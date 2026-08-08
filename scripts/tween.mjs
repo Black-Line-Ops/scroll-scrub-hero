@@ -97,6 +97,36 @@ if (missing.length) {
 
 const res = mode === '4K' ? '3840x2160' : mode === 'std' ? '1280x720' : '1920x1080'
 
+/* The rate table, the estimate and the balance all come from pricing.mjs, and it is imported
+   DYNAMICALLY and non-fatally on purpose. test/helpers/harness.mjs copies this file ON ITS OWN
+   into a sandbox next to a generated stub kie.mjs, and a sibling module does not exist there: a
+   static import would stop the script loading at all, in the one place that proves the gate works.
+   A gate that cannot price is a nuisance. A gate that cannot start is a broken pipeline. The
+   fallback below says so out loud rather than quietly dropping the cost line. */
+let pricing = null
+let pricingProblem = ''
+try {
+  pricing = await import('./pricing.mjs')
+} catch (e) {
+  pricingProblem = e && e.code === 'ERR_MODULE_NOT_FOUND'
+    ? 'pricing.mjs is not next to this script'
+    : `pricing.mjs did not load (${(e && e.message) || e})`
+}
+
+const rates = pricing ? pricing.loadRates() : null
+const est = pricing ? pricing.estimateTween({ segments: todo.length, seconds: duration, mode, rates }) : null
+/* est.known is false for an unrecognised --mode, and then there is no row to quote provenance
+   from; every other path that reaches here has one. */
+const rateRow = est && est.known ? rates.entries[`video.${mode}`] : null
+
+/* fetchBalance is deliberately NOT handed requireKey()'s return value. It reads KIE_API_KEY
+   itself, and the test harness's stub requireKey() answers with a fake key while the real
+   variable is stripped from the child's environment - passing it through would turn an offline
+   test into a live request to kie.ai. Reading the env keeps "no key, no request" true in both
+   worlds. One attempt, 8s deadline, never throws: a spend gate is allowed to run without knowing
+   the balance, and must never hang waiting for it. */
+const balance = pricing ? await pricing.fetchBalance({ rates }) : null
+
 /* Kling renders at ~24fps (the repo's own test-footage recipe in examples/ generates at rate=24)
    and build-frames resamples every clip to exactly --per-clip frames no matter how many arrived,
    so each source frame past that count is rendered, paid for and thrown away. Stating the
@@ -105,6 +135,30 @@ const res = mode === '4K' ? '3840x2160' : mode === 'std' ? '1280x720' : '1920x10
 const SRC_FPS = 24
 const PER_CLIP = 40                      /* build-frames.mjs's --per-clip default; keep in step */
 const srcFrames = duration * SRC_FPS + 1
+
+/* The money lines. Everything a person needs to answer y/n, in the order they need it: what it
+   should cost, how that number was arrived at, who says so, and whether the account can cover it.
+   formatCost is pricing.mjs's only renderer for a cost figure, so this reads the same here as it
+   does everywhere else that quotes one. */
+const costLines = []
+if (est && est.known) {
+  costLines.push(`  cost      ${pricing.formatCost(est)}   <- an ESTIMATE, not a quote`)
+  costLines.push(`            ${est.basis}`)
+  costLines.push(`            confidence ${est.confidence}, checked ${rateRow.checked}`)
+  costLines.push(`            source ${rateRow.source}`)
+} else if (est) {
+  costLines.push(`  cost      ${pricing.formatCost(est)}`)
+} else {
+  costLines.push(`  cost      not estimated - ${pricingProblem}`)
+}
+if (balance) costLines.push(`  account   ${pricing.formatBalance(balance, est)}`)
+
+/* The one thing this gate can tell you that nothing else will: the run does not fit. Checked
+   against the HIGH end and only when both figures are real - est.known and est.partial exist
+   precisely so a floor is never mistaken for a total. */
+const shortOfCredit = !!(balance && balance.known && est && est.known && !est.partial &&
+  est.credits && balance.credits < est.credits.high)
+
 const costLine =
   `\nAbout to generate ${todo.length} video segment(s)\n` +
   `  model     kling-3.0/video\n` +
@@ -116,11 +170,29 @@ const costLine =
     ? `            --duration 3 still yields ~${3 * SRC_FPS + 1}, comfortably above ${PER_CLIP}\n`
     : '') +
   `  segments  ${todo.map(m => `${m.from}->${m.to}`).join(', ')}\n` +
-  '\nVideo is the expensive part of this pipeline. Check current pricing for kling-3.0 on\n' +
-  'kie.ai; this script does not know your rate and will not invent one. What it does record\n' +
-  'is whatever kie.ai reports as creditsConsumed, per segment and alongside the duration it\n' +
-  `was generated at, in\n  ${stateFile}\n` +
-  'so the cost of a given --duration is something you can look up afterwards instead of estimate.'
+  costLines.join('\n') + '\n' +
+  (shortOfCredit
+    ? '\n!! NOT ENOUGH CREDIT for this run, per the account line above. Kling is billed segment\n' +
+      '   by segment as the run proceeds, so starting anyway buys some clips and no finished\n' +
+      '   hero. Top up first, or cut this run down with --only.\n'
+    : '') +
+  '\nVideo is the expensive part of this pipeline. ' +
+  /* The two halves of this paragraph have to disagree, because in one case there is an estimate
+     above and in the other there is not. A tail that pointed at a rate table the script has just
+     said it could not load would be the same defect this repo was audited for: prose asserting
+     something the code did not do. */
+  (pricing
+    ? 'The cost above is an estimate from the rate table in\n' +
+      'pricing.mjs, which names the page every rate was read off and how to pin your own:\n' +
+      `  node "${path.join(HERE, 'pricing.mjs')}"\n`
+    : 'Without pricing.mjs this script does not know your\n' +
+      'rate and will not invent one; kie.ai publishes current kling-3.0 pricing.\n') +
+  'What gets RECORDED either way is whatever kie.ai reports as creditsConsumed, per segment and\n' +
+  `alongside the duration it was generated at, in\n  ${stateFile}\n` +
+  (pricing
+    ? 'and this run compares that against the estimate when it finishes, so the cost of a given\n' +
+      '--duration ends up measured rather than argued about.'
+    : 'so the cost of a given --duration is something you can look up afterwards instead of guess.')
 console.log(costLine)
 
 if (!await confirm('Proceed?', { yes: !!a.yes, whatItCosts: costLine })) {
@@ -237,16 +309,39 @@ const creditsOf = (id) => {
   return Number.isFinite(c) ? c : null
 }
 const sum = (ids) => ids.reduce((n, id) => n + creditsOf(id), 0)
+
+/* creditsConsumed is a MEASUREMENT, and formatCost renders Estimates - it would dress this in a
+   "~" and a range it does not have. So the conversion happens here, through the same creditUsd
+   row the estimate used, which is why pinning creditUsd moves the prediction and the bill
+   together. The dollars are an upper bound either way: kie.ai's bonus top-up SKUs can make a
+   credit cost up to ~10% less, and the table's own note says so. */
+const usdOf = (credits) => {
+  const cu = rates && rates.entries.creditUsd
+  return cu ? ` (~$${(credits * cu.low).toFixed(2)})` : ''
+}
+
 const billed = generated.filter(id => creditsOf(id) !== null)
 if (billed.length) {
   const runTotal = sum(billed)
-  console.log(`credits this run: ${runTotal} for ${billed.length} segment(s) at ${duration}s ` +
+  console.log(`credits this run: ${runTotal}${usdOf(runTotal)} for ${billed.length} segment(s) at ${duration}s ` +
     `(${(runTotal / billed.length).toFixed(1)} per segment)`)
   /* The per-storyboard figure is the one that answers "is 3s cheaper than 5s" - a single run is
      usually a partial one. Only worth a line when it says something the run total did not. */
   const recorded = Object.keys(st.segments).filter(id => creditsOf(id) !== null)
   if (recorded.length > billed.length) {
-    console.log(`credits recorded for all ${recorded.length} segment(s) in this storyboard: ${sum(recorded)}`)
+    const all = sum(recorded)
+    console.log(`credits recorded for all ${recorded.length} segment(s) in this storyboard: ${all}${usdOf(all)}`)
+  }
+  /* Estimate versus bill. Measured against an estimate for the segments actually BILLED, not the
+     ones ordered: a run where two of four submits failed would otherwise compare four segments'
+     prediction with two segments' bill and announce that the rate table is 50% high. That is the
+     exact failure mode this whole exercise exists to avoid - a confident wrong number. */
+  if (est && est.known) {
+    const obs = pricing.observedFromSegments(st.segments, { only: billed })
+    const billedEst = pricing.estimateTween({ segments: billed.length, seconds: duration, mode, rates })
+    for (const line of pricing.formatCalibration(pricing.calibrate(billedEst, obs, { rates }))) {
+      console.log(line)
+    }
   }
   console.log(`kie.ai/logs is the source of truth if a bill looks wrong; per-segment figures are in ${stateFile}`)
 } else if (generated.length) {
