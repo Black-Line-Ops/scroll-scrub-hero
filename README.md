@@ -358,9 +358,16 @@ code. If you want one of these built for you rather than building it yourself, t
 
 </div>
 
-<!-- SUPPORT SECTION GOES HERE once the accounts exist — see the note in the last chat.
-     Do not add GitHub Sponsors or Ko-fi badges until those accounts are real; a support
-     button that 404s is worse than no support button. -->
+### 💼 Need one built instead?
+
+This is the whole pipeline, free, MIT. But if you would rather not run it yourself — or you want
+the hero designed into a page rather than dropped into one — that is the day job. Rates and contact
+are on **[blacklinedesign.website](https://blacklinedesign.website)**.
+
+<!-- No sponsors/Ko-fi block on purpose (owner's call, 2026-08-08). This repo already carries an
+     affiliate link and a services pitch; a donate button would be a third ask on one page, and it
+     reads oddly on an agency repo with a published rate card. If that changes, the accounts have
+     to exist FIRST — a support button that 404s is worse than no support button. -->
 
 ## ⚖️ Licence
 
