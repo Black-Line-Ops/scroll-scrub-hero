@@ -92,11 +92,17 @@ the skill. Setting it, and the one command that checks the whole install, are in
 |---|---|
 | **Node 18+** | for the scripts (`node --version`) |
 | **ffmpeg + ffprobe** | for cutting frames — `winget install Gyan.FFmpeg`, `brew install ffmpeg`, or `apt install ffmpeg` |
-| **A kie.ai account with credits** | this is where the models run |
+| **A kie.ai account with credits** | this is where the models run — [sign up](https://kie.ai?ref=da271de69b92c3461d59a15884817078) |
 
 ## Setup
 
-Get an API key from **kie.ai → API keys**, then set it as an environment variable.
+Get an API key from **[kie.ai](https://kie.ai?ref=da271de69b92c3461d59a15884817078) → API keys**, then set it as an environment variable.
+
+> **Affiliate disclosure.** The kie.ai sign-up links above are referral links — create an account
+> through one and Black Line Ops earns a credit, at no extra cost to you. It changes nothing about
+> what a run costs: the rates in `references/kie-api.md` are kie.ai's own published figures, and
+> the links cited there as sources are deliberately plain, so you can verify every number against
+> an unreferred page.
 
 **Windows PowerShell** — this terminal only:
 ```powershell

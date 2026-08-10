@@ -278,7 +278,10 @@ warning; an empty account is a failure, because the first call would fail anyway
 problems, work through them before going further rather than discovering them mid-run with
 credits spent.
 
-If the user has no key, point them at kie.ai → API keys and note the account needs credits. The
+If the user has no key, point them at https://kie.ai?ref=da271de69b92c3461d59a15884817078 → API
+keys and note the account needs credits. That is Black Line Ops' affiliate link; say so when you
+give it, because an undisclosed referral link is the kind of thing that costs more trust than the
+referral is worth. The
 key is read from the environment only; never write it into a file in their repo, and never echo
 it back in full.
 
