@@ -1,4 +1,33 @@
+<div align="center">
+
 # scroll-scrub-hero
+
+### Scrolling drives a real transformation — one photo in, a scrubbing hero out
+
+Bare yard becomes a finished pool. Empty room becomes a staged interior. The camera holds still;
+the subject changes.
+
+<br>
+
+[![Licence](https://img.shields.io/badge/licence-MIT-101820?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.1.0-101820?style=for-the-badge)](CHANGELOG.md)
+[![Node](https://img.shields.io/badge/node-18+-3C873A?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Dependencies](https://img.shields.io/badge/dependencies-zero-2ea44f?style=for-the-badge)](#what-you-need)
+[![Tests](https://img.shields.io/badge/tests-235%20passing-2ea44f?style=for-the-badge)](test/)
+[![Powered by kie.ai](https://img.shields.io/badge/powered%20by-kie.ai-ff8200?style=for-the-badge)](https://kie.ai?ref=da271de69b92c3461d59a15884817078)
+
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square)](#installing-it)
+[![Codex](https://img.shields.io/badge/Codex-ready-000000?style=flat-square)](#installing-it)
+[![Cursor](https://img.shields.io/badge/Cursor-ready-1a1a1a?style=flat-square)](#installing-it)
+[![Windows](https://img.shields.io/badge/Windows-supported-0078D6?style=flat-square)](#setup)
+[![macOS](https://img.shields.io/badge/macOS-supported-333333?style=flat-square)](#setup)
+[![Linux](https://img.shields.io/badge/Linux-supported-FCC624?style=flat-square)](#setup)
+
+**[Get started](#installing-it)** · **[Case studies](examples/)** ·
+**[How it works](docs/how-it-works.md)** · **[What it costs](#cost)** ·
+**[Sibling skill](https://github.com/Black-Line-Ops/scroll-flight)**
+
+</div>
 
 <!-- Before changing the line below to a <video>: that has been tried and reverted (69011b2,
      b7ce8d6). GitHub strips autoplay from author markup, and strips a <video> pointing at a
@@ -16,14 +45,15 @@ This plays by itself, and GitHub puts a pause button on it. Open the
 <a href="docs/examples-reel.mp4">full-quality MP4</a> to scrub it frame by frame.
 Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 
-Turn one photo of a real place into a hero section where **scrolling drives a transformation** —
-bare yard becomes a finished pool, empty room becomes a staged interior, raw stock becomes a
-machined part. The camera holds still; the subject changes.
-
-Built by [Black Line Design](https://blacklinedesign.website). This is the same pipeline behind
-the scroll heroes on our client sites, packaged so you can run it yourself.
-
 ---
+
+> [!NOTE]
+> **You'll need a [kie.ai account](https://kie.ai?ref=da271de69b92c3461d59a15884817078)** — that's
+> where the models run, and you pay them directly. A typical hero is **about $2.55**. That link is
+> a Black Line Ops affiliate link: sign up through it and we earn a referral credit at no extra
+> cost to you. It changes nothing about what a run costs, and the rates quoted in
+> [`references/kie-api.md`](references/kie-api.md#what-it-costs) cite kie.ai's own pages with
+> plain, unreferred links so you can check every number.
 
 ## What it actually does
 
@@ -40,12 +70,42 @@ You give it a photograph and a sentence. It:
 The finished hero is just images a canvas paints. No video element, no runtime AI, no streaming
 — which is why it scrubs smoothly, works offline once deployed, and doesn't stall on iOS.
 
+<details>
+<summary><b>Which of the two skills do I want?</b></summary>
+
+<br>
+
+Ask whether the camera moves.
+
+| | **scroll-scrub-hero** (this one) | **[scroll-flight](https://github.com/Black-Line-Ops/scroll-flight)** |
+|---|---|---|
+| Camera | locked, one fixed viewpoint | travels through a world |
+| Subject | the subject changes state | the world holds still, you fly |
+| Starts from | one or two real photographs | an idea, no photo needed |
+| Good for | before → after, bare yard → finished pool | "fly through our factory / city / process" |
+
+</details>
+
+## Repo map
+
+| | |
+|---|---|
+| [`SKILL.md`](SKILL.md) | what Claude reads — the interview, then the pipeline |
+| [`scripts/`](scripts) | storyboard → keyframes → tween → build-frames, plus `doctor.mjs` and `pricing.mjs` |
+| [`references/`](references) | [prompting](references/prompting.md), [page wiring](references/hero-wiring.md), [the kie.ai contract and cost model](references/kie-api.md) |
+| [`examples/`](examples) | four real client builds, measured — frame counts, weights, what went wrong |
+| [`test/`](test) | 235 tests, no network, nothing billable |
+| [`docs/how-it-works.md`](docs/how-it-works.md) | why the frames approach beats seeking a video |
+
 ## Installing it
 
 Works in Claude Code, Codex, Cursor and most other `SKILL.md`-compatible agents. Pick whichever
 line matches your setup.
 
-### Any agent — the skills CLI
+<details open>
+<summary><b>Any agent — the skills CLI</b> <i>(easiest)</i></summary>
+
+<br>
 
 Installs into whichever agents it finds on your machine (75+ supported, Codex and Cursor
 included). It will ask which ones to target if it can't tell.
@@ -56,19 +116,34 @@ npx skills add Black-Line-Ops/scroll-scrub-hero
 
 For Codex this lands in `.agents/skills/` for the project, or `~/.codex/skills/` globally.
 
-### Claude Code — as a plugin
+</details>
+
+<details>
+<summary><b>Claude Code — as a plugin</b></summary>
+
+<br>
 
 ```
 /plugin marketplace add Black-Line-Ops/scroll-scrub-hero
 /plugin install scroll-scrub-hero@scroll-scrub-hero
 ```
 
-### Claude Code — from a `.skill` file
+</details>
+
+<details>
+<summary><b>Claude Code — from a <code>.skill</code> file</b></summary>
+
+<br>
 
 Open it with Claude (drag it in, or use the **Save skill** button when Claude shows it). It
 installs into your profile and is available in every project.
 
-### By hand
+</details>
+
+<details>
+<summary><b>By hand</b></summary>
+
+<br>
 
 Drop the folder into your agent's skills directory and restart it.
 
@@ -79,12 +154,14 @@ Drop the folder into your agent's skills directory and restart it.
 | Codex (project) | `.agents/skills/scroll-scrub-hero/` |
 | Codex (global) | `~/.codex/skills/scroll-scrub-hero/` |
 
-`SKILL.md` must sit at the top level of the `scroll-scrub-hero` folder — not nested inside a second
-folder of the same name, which is the usual unzip accident.
+`SKILL.md` must sit at the top level of the `scroll-scrub-hero` folder — not nested inside a
+second folder of the same name, which is the usual unzip accident.
+
+</details>
 
 Note where it landed. Everything below addresses the scripts through a `SKILL` variable holding
 that path, which is what lets you run them from your own project directory instead of from inside
-the skill. Setting it, and the one command that checks the whole install, are in **Setup** below.
+the skill.
 
 ## What you need
 
@@ -92,37 +169,48 @@ the skill. Setting it, and the one command that checks the whole install, are in
 |---|---|
 | **Node 18+** | for the scripts (`node --version`) |
 | **ffmpeg + ffprobe** | for cutting frames — `winget install Gyan.FFmpeg`, `brew install ffmpeg`, or `apt install ffmpeg` |
-| **A kie.ai account with credits** | this is where the models run — [sign up](https://kie.ai?ref=da271de69b92c3461d59a15884817078) |
+| **A kie.ai account with credits** | this is where the models run — **[sign up](https://kie.ai?ref=da271de69b92c3461d59a15884817078)** |
+
+No npm install. Every import is a Node builtin.
 
 ## Setup
 
-Get an API key from **[kie.ai](https://kie.ai?ref=da271de69b92c3461d59a15884817078) → API keys**, then set it as an environment variable.
+Get an API key from **[kie.ai](https://kie.ai?ref=da271de69b92c3461d59a15884817078) → API keys**,
+then set it as an environment variable.
 
-> **Affiliate disclosure.** The kie.ai sign-up links above are referral links — create an account
-> through one and Black Line Ops earns a credit, at no extra cost to you. It changes nothing about
-> what a run costs: the rates in `references/kie-api.md` are kie.ai's own published figures, and
-> the links cited there as sources are deliberately plain, so you can verify every number against
-> an unreferred page.
+<details open>
+<summary><b>Windows PowerShell</b></summary>
 
-**Windows PowerShell** — this terminal only:
+<br>
+
+This terminal only:
 ```powershell
 $env:KIE_API_KEY = "your-key-here"
 ```
 
-**Windows PowerShell** — permanently, then reopen your terminal:
+Permanently, then reopen your terminal:
 ```powershell
 [Environment]::SetEnvironmentVariable("KIE_API_KEY","your-key-here","User")
 ```
 
-**macOS / Linux / Git Bash** — this shell only:
+</details>
+
+<details>
+<summary><b>macOS / Linux / Git Bash</b></summary>
+
+<br>
+
+This shell only:
 ```bash
 export KIE_API_KEY="your-key-here"
 ```
 
-**macOS / Linux** — permanently:
+Permanently:
 ```bash
 echo 'export KIE_API_KEY="your-key-here"' >> ~/.zshrc
 ```
+
+</details>
 
 Then point `SKILL` at the folder you installed into and run the preflight. This is the only check
 this README asks you to run — it covers the install, the tools and the key in one command:
@@ -139,14 +227,16 @@ $SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"   # adjust to where
 node "$SKILL/scripts/doctor.mjs"
 ```
 
-It verifies Node, ffmpeg, that your ffmpeg can actually encode WebP, your key, that kie.ai
-accepts it, and that every route the pipeline calls still exists — and prints the exact fix for
-anything missing. It then shows the money: your credit balance in credits and dollars, what a
-default run costs, and every rate with the page it was read from. None of that spends anything.
-The scripts only ever READ the key from the environment — they never write it anywhere. Your
-shell may still record the command in its history: on macOS/Linux a leading space usually
-keeps it out, and the PowerShell `SetEnvironmentVariable` form stores it in your user
-environment rather than a file.
+It verifies Node, ffmpeg, that your ffmpeg can actually encode WebP, your key, that kie.ai accepts
+it, and that every route the pipeline calls still exists — and prints the exact fix for anything
+missing. It then shows the money: your credit balance in credits and dollars, what a default run
+costs, and every rate with the page it was read from. **None of that spends anything.**
+
+> [!IMPORTANT]
+> The scripts only ever **read** the key from the environment — they never write it anywhere. Your
+> shell may still record the command in its history: on macOS/Linux a leading space usually keeps
+> it out, and the PowerShell `SetEnvironmentVariable` form stores it in your user environment
+> rather than a file.
 
 ## Using it
 
@@ -155,13 +245,18 @@ Easiest way is to just ask Claude, in a project where the skill is installed:
 > Build me a scroll hero from `photos/backyard.jpg` — bare grass through to a finished pool
 > with water in it.
 
-You do not need to know what a keyframe is. Claude runs a short interview first — six
-multiple-choice questions about what you want, each option priced, each with a recommended
-default you can just take — then shows you the forecast, drives the pipeline, and stops at the
-contact sheet for your approval before anything expensive happens.
+**You do not need to know what a keyframe is.** Claude runs a short interview first — six
+multiple-choice questions about what you want, each option priced, each with a recommended default
+you can just take — then shows you the forecast, drives the pipeline, and stops at the contact
+sheet for your approval before anything expensive happens.
 
-To drive it by hand instead — **run all four from the same scratch directory**, never from inside
-the skill folder, and use absolute paths for anything outside it:
+<details>
+<summary><b>Driving it by hand</b></summary>
+
+<br>
+
+**Run all four from the same scratch directory**, never from inside the skill folder, and use
+absolute paths for anything outside it:
 
 ```bash
 mkdir -p ~/scrub/jones && cd ~/scrub/jones
@@ -176,32 +271,34 @@ node "$SKILL/scripts/build-frames.mjs" --segments segments/ --storyboard storybo
 That last line is long on purpose. A trailing `\` to wrap it is a bash-ism, and this project
 supports PowerShell, where the paste would break.
 
-Staying in one directory matters: the scripts record their progress in `_state.json` files
-beside their output, and that is also what lets you resume a run instead of paying twice.
+Staying in one directory matters: the scripts record their progress in `_state.json` files beside
+their output, and that is also what lets you resume a run instead of paying twice.
 
-The two steps that spend credits ask before doing it. When something other than a person at a
-keyboard is running them — Claude, a script, CI — there is nothing to answer the prompt, so they
-take `--yes`. Treat it as signing for the cost.
+</details>
+
+> [!WARNING]
+> The two steps that spend credits ask before doing it. When something other than a person at a
+> keyboard is running them — Claude, a script, CI — there is nothing to answer the prompt, so they
+> take `--yes`. **Treat it as signing for the cost.**
 
 ## Choosing a photo
 
 This matters more than any setting.
 
-- **Wide beats tight.** A shot with buildings, a fence and a horizon gives the model landmarks
-  to hold onto. A tight crop of a lawn gives it nothing, and the sequence drifts.
+- **Wide beats tight.** A shot with buildings, a fence and a horizon gives the model landmarks to
+  hold onto. A tight crop of a lawn gives it nothing, and the sequence drifts.
 - **Even, flat light.** Harsh shadows move as the model invents, which reads as a time jump.
 - **One clear subject area** that will change, with everything else static.
-- **Two photos are better than one.** If you have a genuine before *and* after of the same
-  view, pass the second to `storyboard.mjs --ref2` — the pipeline pins the last keyframe to the
-  real finished photo instead of imagining it, and copies it in rather than paying to generate
-  it. (`--ref2` goes on `storyboard.mjs` only; `keyframes.mjs` reads it back out of
-  `storyboard.json`.)
+- **Two photos are better than one.** If you have a genuine before *and* after of the same view,
+  pass the second to `storyboard.mjs --ref2` — the pipeline pins the last keyframe to the real
+  finished photo instead of imagining it, and copies it in rather than paying to generate it.
+  (`--ref2` goes on `storyboard.mjs` only; `keyframes.mjs` reads it back out of `storyboard.json`.)
 
 ## Cost
 
-You pay kie.ai directly for what you generate. **A typical six-step hero is about $2.55** — a
-handful of stills at 5 cents each, plus five video segments at about 45 cents each. The stills
-are cheap; the video is the whole bill.
+You pay [kie.ai](https://kie.ai?ref=da271de69b92c3461d59a15884817078) directly for what you
+generate. **A typical six-step hero is about $2.55** — a handful of stills at 5 cents each, plus
+five video segments at about 45 cents each. The stills are cheap; the video is the whole bill.
 
 | Six steps, 2K stills, 5 s clips | Estimate |
 |---|---|
@@ -212,16 +309,16 @@ are cheap; the video is the whole bill.
 Four steps is about $1.55 and ten is about $4.55, at final quality. Every figure here is an
 **estimate** from a dated rate table read off kie.ai's own pages on 2026-08-07 — not a quote.
 
-Before it spends, each script prints what it is about to generate, what that should cost in
-credits and dollars, the arithmetic behind the number, the page the rate came from, and your
-account balance — then waits for a yes. `node scripts/doctor.mjs` shows all of that for free
-before you start. What gets *recorded* is whatever kie.ai reports as `creditsConsumed`, per item,
-in `keyframes/_state.json` and `segments/_state.json`; the run compares that against the estimate
-when it finishes and tells you how to pin your own rate if the table is off for your account.
+Before it spends, each script prints what it is about to generate, what that should cost in credits
+and dollars, the arithmetic behind the number, the page the rate came from, and your account
+balance — then waits for a yes. `node scripts/doctor.mjs` shows all of that for free before you
+start. What gets *recorded* is whatever kie.ai reports as `creditsConsumed`, per item, in
+`keyframes/_state.json` and `segments/_state.json`; the run compares that against the estimate when
+it finishes and tells you how to pin your own rate if the table is off for your account.
 
 Two habits keep it sane: approve the contact sheet before tweening, and regenerate single items
-(`--only 3`) rather than whole batches. The full cost model, with the provenance of every rate
-and how to override them, is in [`references/kie-api.md`](references/kie-api.md#what-it-costs).
+(`--only 3`) rather than whole batches. The full cost model, with the provenance of every rate and
+how to override them, is in [`references/kie-api.md`](references/kie-api.md#what-it-costs).
 
 ## If something looks wrong
 
@@ -233,10 +330,19 @@ and how to override them, is in [`references/kie-api.md`](references/kie-api.md#
 | Hero feels heavy on mobile | too many frames or too wide | lower `--per-clip` or `--width` |
 | A task never finishes | it may still be running | query the saved taskId before regenerating, or you pay twice |
 
-More detail lives in `references/prompting.md` (getting good frames) and
-`references/hero-wiring.md` (getting it into a page).
+More detail lives in [`references/prompting.md`](references/prompting.md) (getting good frames)
+and [`references/hero-wiring.md`](references/hero-wiring.md) (getting it into a page).
 
 ## Licence
 
 MIT — see [LICENSE](LICENSE). Use it on client work freely, commercial or otherwise. If it is
 useful, a mention is appreciated but not required.
+
+<div align="center">
+<br>
+
+Built by **[Black Line Design](https://blacklinedesign.website)** · Tampa Bay, Florida
+
+<sub>kie.ai links in this README are affiliate links — they cost you nothing extra.</sub>
+
+</div>
