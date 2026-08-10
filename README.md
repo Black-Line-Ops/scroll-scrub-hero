@@ -9,20 +9,6 @@ the subject changes.
 
 <br>
 
-[![Licence](https://img.shields.io/badge/licence-MIT-101820?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-101820?style=for-the-badge)](CHANGELOG.md)
-[![Node](https://img.shields.io/badge/node-18+-3C873A?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Dependencies](https://img.shields.io/badge/dependencies-zero-2ea44f?style=for-the-badge)](#what-you-need)
-[![Tests](https://img.shields.io/badge/tests-235%20passing-2ea44f?style=for-the-badge)](test/)
-[![Powered by kie.ai](https://img.shields.io/badge/powered%20by-kie.ai-ff8200?style=for-the-badge)](https://kie.ai?ref=da271de69b92c3461d59a15884817078)
-
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square)](#installing-it)
-[![Codex](https://img.shields.io/badge/Codex-ready-000000?style=flat-square)](#installing-it)
-[![Cursor](https://img.shields.io/badge/Cursor-ready-1a1a1a?style=flat-square)](#installing-it)
-[![Windows](https://img.shields.io/badge/Windows-supported-0078D6?style=flat-square)](#setup)
-[![macOS](https://img.shields.io/badge/macOS-supported-333333?style=flat-square)](#setup)
-[![Linux](https://img.shields.io/badge/Linux-supported-FCC624?style=flat-square)](#setup)
-
 **[Get started](#installing-it)** · **[Case studies](examples/)** ·
 **[How it works](docs/how-it-works.md)** · **[What it costs](#cost)** ·
 **[Sibling skill](https://github.com/Black-Line-Ops/scroll-flight)**
@@ -44,6 +30,25 @@ browsing scroll, so the clip lengths differ because the heroes do.
 This plays by itself, and GitHub puts a pause button on it. Open the
 <a href="docs/examples-reel.mp4">full-quality MP4</a> to scrub it frame by frame.
 Measurements and case studies in <a href="examples/">examples/</a>.</sub>
+
+<div align="center">
+<br>
+
+[![Licence](https://img.shields.io/badge/licence-MIT-101820?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.1.0-101820?style=for-the-badge)](CHANGELOG.md)
+[![Node](https://img.shields.io/badge/node-18+-3C873A?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Dependencies](https://img.shields.io/badge/dependencies-zero-2ea44f?style=for-the-badge)](#what-you-need)
+[![Tests](https://img.shields.io/badge/tests-235%20passing-2ea44f?style=for-the-badge)](test/)
+[![Powered by kie.ai](https://img.shields.io/badge/powered%20by-kie.ai-ff8200?style=for-the-badge)](https://kie.ai?ref=da271de69b92c3461d59a15884817078)
+
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square)](#installing-it)
+[![Codex](https://img.shields.io/badge/Codex-ready-000000?style=flat-square)](#installing-it)
+[![Cursor](https://img.shields.io/badge/Cursor-ready-1a1a1a?style=flat-square)](#installing-it)
+[![Windows](https://img.shields.io/badge/Windows-supported-0078D6?style=flat-square)](#setup)
+[![macOS](https://img.shields.io/badge/macOS-supported-333333?style=flat-square)](#setup)
+[![Linux](https://img.shields.io/badge/Linux-supported-FCC624?style=flat-square)](#setup)
+
+</div>
 
 ---
 
