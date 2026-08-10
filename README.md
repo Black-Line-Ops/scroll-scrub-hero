@@ -60,7 +60,7 @@ Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 > [`references/kie-api.md`](references/kie-api.md#what-it-costs) cite kie.ai's own pages with
 > plain, unreferred links so you can check every number.
 
-## What it actually does
+## 🎬 What it actually does
 
 You give it a photograph and a sentence. It:
 
@@ -91,7 +91,7 @@ Ask whether the camera moves.
 
 </details>
 
-## Repo map
+## 🗺️ Repo map
 
 | | |
 |---|---|
@@ -102,7 +102,7 @@ Ask whether the camera moves.
 | [`test/`](test) | 235 tests, no network, nothing billable |
 | [`docs/how-it-works.md`](docs/how-it-works.md) | why the frames approach beats seeking a video |
 
-## Installing it
+## 📦 Installing it
 
 Works in Claude Code, Codex, Cursor and most other `SKILL.md`-compatible agents. Pick whichever
 line matches your setup.
@@ -168,7 +168,7 @@ Note where it landed. Everything below addresses the scripts through a `SKILL` v
 that path, which is what lets you run them from your own project directory instead of from inside
 the skill.
 
-## What you need
+## 🧰 What you need
 
 | | |
 |---|---|
@@ -178,7 +178,7 @@ the skill.
 
 No npm install. Every import is a Node builtin.
 
-## Setup
+## 🔑 Setup
 
 Get an API key from **[kie.ai](https://kie.ai?ref=da271de69b92c3461d59a15884817078) → API keys**,
 then set it as an environment variable.
@@ -243,7 +243,7 @@ costs, and every rate with the page it was read from. **None of that spends anyt
 > it out, and the PowerShell `SetEnvironmentVariable` form stores it in your user environment
 > rather than a file.
 
-## Using it
+## ▶️ Using it
 
 Easiest way is to just ask Claude, in a project where the skill is installed:
 
@@ -286,7 +286,7 @@ their output, and that is also what lets you resume a run instead of paying twic
 > keyboard is running them — Claude, a script, CI — there is nothing to answer the prompt, so they
 > take `--yes`. **Treat it as signing for the cost.**
 
-## Choosing a photo
+## 📷 Choosing a photo
 
 This matters more than any setting.
 
@@ -299,7 +299,7 @@ This matters more than any setting.
   finished photo instead of imagining it, and copies it in rather than paying to generate it.
   (`--ref2` goes on `storyboard.mjs` only; `keyframes.mjs` reads it back out of `storyboard.json`.)
 
-## Cost
+## 💵 Cost
 
 You pay [kie.ai](https://kie.ai?ref=da271de69b92c3461d59a15884817078) directly for what you
 generate. **A typical six-step hero is about $2.55** — a handful of stills at 5 cents each, plus
@@ -325,7 +325,7 @@ Two habits keep it sane: approve the contact sheet before tweening, and regenera
 (`--only 3`) rather than whole batches. The full cost model, with the provenance of every rate and
 how to override them, is in [`references/kie-api.md`](references/kie-api.md#what-it-costs).
 
-## If something looks wrong
+## 🩺 If something looks wrong
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -338,16 +338,35 @@ how to override them, is in [`references/kie-api.md`](references/kie-api.md#what
 More detail lives in [`references/prompting.md`](references/prompting.md) (getting good frames)
 and [`references/hero-wiring.md`](references/hero-wiring.md) (getting it into a page).
 
-## Licence
+## 🖤 Built by Black Line Design
+
+We are a Tampa Bay web studio. This skill is the same pipeline behind the scroll heroes on our
+client sites — packaged, documented and given away, because the interesting part was never the
+code. If you want one of these built for you rather than building it yourself, that is what we do.
+
+<div align="center">
+<br>
+
+[![Website](https://img.shields.io/badge/blacklinedesign.website-101820?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blacklinedesign.website)
+[![Black Line Ops](https://img.shields.io/badge/blacklineops.ai-ff8200?style=for-the-badge)](https://blacklineops.ai)
+
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Black-Line-Ops)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/blacklineops/)
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtube.com/@blacklineopsllc)
+[![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/blacklineops.llc/)
+[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=flat-square&logo=facebook&logoColor=white)](https://www.facebook.com/profile.php?id=61591659974557)
+
+</div>
+
+<!-- SUPPORT SECTION GOES HERE once the accounts exist — see the note in the last chat.
+     Do not add GitHub Sponsors or Ko-fi badges until those accounts are real; a support
+     button that 404s is worse than no support button. -->
+
+## ⚖️ Licence
 
 MIT — see [LICENSE](LICENSE). Use it on client work freely, commercial or otherwise. If it is
 useful, a mention is appreciated but not required.
 
 <div align="center">
-<br>
-
-Built by **[Black Line Design](https://blacklinedesign.website)** · Tampa Bay, Florida
-
 <sub>kie.ai links in this README are affiliate links — they cost you nothing extra.</sub>
-
 </div>
