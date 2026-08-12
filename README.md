@@ -10,8 +10,7 @@ the subject changes.
 <br>
 
 **[Get started](#installing-it)** · **[Case studies](examples/)** ·
-**[How it works](docs/how-it-works.md)** · **[What it costs](#cost)** ·
-**[Sibling skill](https://github.com/Black-Line-Ops/scroll-flight)**
+**[How it works](docs/how-it-works.md)** · **[What it costs](#cost)**
 
 </div>
 
@@ -82,7 +81,7 @@ The finished hero is just images a canvas paints. No video element, no runtime A
 
 Ask whether the camera moves.
 
-| | **scroll-scrub-hero** (this one) | **[scroll-flight](https://github.com/Black-Line-Ops/scroll-flight)** |
+| | **scroll-scrub-hero** (this one) | **scroll-flight** *(coming soon)* |
 |---|---|---|
 | Camera | locked, one fixed viewpoint | travels through a world |
 | Subject | the subject changes state | the world holds still, you fly |
