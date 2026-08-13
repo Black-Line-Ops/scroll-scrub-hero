@@ -33,18 +33,18 @@ Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 <div align="center">
 <br>
 
-[![Licence](https://img.shields.io/badge/licence-MIT-101820?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-101820?style=for-the-badge)](CHANGELOG.md)
-[![Node](https://img.shields.io/badge/node-18+-3C873A?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Dependencies](https://img.shields.io/badge/dependencies-zero-2ea44f?style=for-the-badge)](#what-you-need)
-[![Tests](https://img.shields.io/badge/tests-235%20passing-2ea44f?style=for-the-badge)](test/)
-[![Powered by kie.ai](https://img.shields.io/badge/powered%20by-kie.ai-ff8200?style=for-the-badge)](https://kie.ai?ref=da271de69b92c3461d59a15884817078)
+[![Licence](https://img.shields.io/badge/licence-MIT-EF4444?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.1.0-2563EB?style=for-the-badge)](CHANGELOG.md)
+[![Node](https://img.shields.io/badge/node-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Dependencies](https://img.shields.io/badge/dependencies-zero-0891B2?style=for-the-badge)](#what-you-need)
+[![Tests](https://img.shields.io/badge/tests-235%20passing-D946EF?style=for-the-badge)](test/)
+[![Powered by kie.ai](https://img.shields.io/badge/powered%20by-kie.ai-2563EB?style=for-the-badge)](https://kie.ai?ref=da271de69b92c3461d59a15884817078)
 
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square)](#installing-it)
-[![Codex](https://img.shields.io/badge/Codex-ready-000000?style=flat-square)](#installing-it)
-[![Cursor](https://img.shields.io/badge/Cursor-ready-1a1a1a?style=flat-square)](#installing-it)
-[![Windows](https://img.shields.io/badge/Windows-supported-0078D6?style=flat-square)](#setup)
-[![macOS](https://img.shields.io/badge/macOS-supported-333333?style=flat-square)](#setup)
+[![Codex](https://img.shields.io/badge/Codex-ready-06B6D4?style=flat-square)](#installing-it)
+[![Cursor](https://img.shields.io/badge/Cursor-ready-7C3AED?style=flat-square)](#installing-it)
+[![Windows](https://img.shields.io/badge/Windows-supported-0078D4?style=flat-square)](#setup)
+[![macOS](https://img.shields.io/badge/macOS-supported-8E8E93?style=flat-square)](#setup)
 [![Linux](https://img.shields.io/badge/Linux-supported-FCC624?style=flat-square)](#setup)
 
 </div>
@@ -363,10 +363,21 @@ This is the whole pipeline, free, MIT. But if you would rather not run it yourse
 the hero designed into a page rather than dropped into one — that is the day job. Rates and contact
 are on **[blacklinedesign.website](https://blacklinedesign.website)**.
 
-<!-- No sponsors/Ko-fi block on purpose (owner's call, 2026-08-08). This repo already carries an
-     affiliate link and a services pitch; a donate button would be a third ask on one page, and it
-     reads oddly on an agency repo with a published rate card. If that changes, the accounts have
-     to exist FIRST — a support button that 404s is worse than no support button. -->
+## 👥 Contributor recognition
+
+Special thanks to **[Titus Byron (@Prxdigy-exe)](https://github.com/Prxdigy-exe)**, Security Analyst Intern at Black Line Ops. Titus contributed debugging, security hardening, operational support, and fixes for several important issues in `scroll-scrub-hero`.
+
+## 💜 Support Black Line Ops
+
+`scroll-scrub-hero` is free and MIT-licensed. If this project saved you time or helped you build something, you can support its continued development:
+
+<div align="center">
+  <a href="https://blacklineops.ai/support">
+    <img src="https://img.shields.io/badge/SUPPORT_BLACK_LINE_OPS-DC2626?style=for-the-badge&logo=stripe&logoColor=white" alt="Support Black Line Ops">
+  </a>
+  <br>
+  <sub>Support is completely optional. This project remains free.</sub>
+</div>
 
 ## ⚖️ Licence
 
