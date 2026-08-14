@@ -10,7 +10,8 @@ the subject changes.
 <br>
 
 **[Get started](#installing-it)** · **[Case studies](examples/)** ·
-**[How it works](docs/how-it-works.md)** · **[What it costs](#cost)**
+**[How it works](docs/how-it-works.md)** · **[What it costs](#cost)** ·
+**[New to Claude Code?](https://blacklineops.ai/claude-code-guide)**
 
 </div>
 
@@ -172,10 +173,15 @@ the skill.
 | | |
 |---|---|
 | **Node 18+** | for the scripts (`node --version`) |
+| **Git** | the skills CLI clones this repo to install it (`git --version`) |
 | **ffmpeg + ffprobe** | for cutting frames — `winget install Gyan.FFmpeg`, `brew install ffmpeg`, or `apt install ffmpeg` |
 | **A kie.ai account with credits** | this is where the models run — **[sign up](https://kie.ai?ref=da271de69b92c3461d59a15884817078)** |
 
 No npm install. Every import is a Node builtin.
+
+> **Never set any of this up before?** The
+> **[plain-English starter guide](https://blacklineops.ai/claude-code-guide)** walks through installing all of it from
+> scratch on Windows or Mac, including what a terminal is. Skip it if none of that is news.
 
 ## 🔑 Setup
 
