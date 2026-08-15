@@ -1,7 +1,7 @@
 # Examples
 
 Five scroll-scrub heroes, measured: four shipped on real client sites, and one reference build you
-can reproduce end to end. The reel at the top of the repo README plays the first three back to
+can reproduce end to end. The reel at the top of the repo README plays the first four back to
 back, each driven at the same 400 px/second.
 
 The point of putting them side by side is the **weight column**. Same technique, same engine,

@@ -23,6 +23,12 @@ was in the repo at that point rather than a record written as it happened. Every
   still, so it is the one sequence in the file a reader can reproduce end to end and check their
   own numbers against — which is why the examples index now reads "four shipped on real client
   sites, and one reference build" rather than claiming a fifth client.
+- **The header reel now plays four heroes** rather than three, adding the same sequence at the
+  end. Its pin runway measured 3,312 px, so it runs 8.28 s at the 400 px/second the other three
+  are driven at, and that claim stays literally true rather than approximately. Reel 21.84 s →
+  30.12 s; GIF 5.4 MB → 7.6 MB, which is the extra runtime and not a worse encode — 42.8 KB per
+  frame against the old 42.0. The caption above it stops enumerating the sites instead of growing
+  a fourth name, so nothing in the top-level README needed to change but the count.
 
 ## [1.1.0] — 2026-08-07
 

@@ -21,12 +21,11 @@ the subject changes.
      That evidence, the click-to-play alternative, and why the source is 600px wide are all in
      docs/readme-reel.md. Read it before reopening this. -->
 
-<img src="docs/examples-reel.gif" width="100%" alt="Three scroll-scrub heroes playing one after another">
+<img src="docs/examples-reel.gif" width="100%" alt="Scroll-scrub heroes playing one after another">
 
-<sub>Three heroes built with this technique, scrubbing back to back — Pools Pavers &amp; Patios,
-Abracadabra and American Floor Scraping. Real recordings, not highlight edits: every one is
-driven at the same constant <b>400&nbsp;px/second</b>, roughly the pace of an unhurried
-browsing scroll, so the clip lengths differ because the heroes do.
+<sub>Heroes built with this technique, scrubbing back to back. Real recordings, not highlight
+edits: every one is driven at the same constant <b>400&nbsp;px/second</b>, roughly the pace of an
+unhurried browsing scroll, so the clip lengths differ because the heroes do.
 This plays by itself, and GitHub puts a pause button on it. Open the
 <a href="docs/examples-reel.mp4">full-quality MP4</a> to scrub it frame by frame.
 Measurements and case studies in <a href="examples/">examples/</a>.</sub>
