@@ -8,6 +8,22 @@ No changelog was kept before this file existed, so the `1.0.0` entry below is a 
 was in the repo at that point rather than a record written as it happened. Everything under
 `Unreleased` is first-hand.
 
+## [Unreleased]
+
+### Added
+
+- **A fifth worked example, Common Ground Remodelers** — 160 frames, 26.9 MB, 172 KB/frame at
+  1600×900, in `examples/README.md`. It is there to separate two things the file previously ran
+  together. American Floor Scraping is 16:9 at 84 KB/frame; this is 16:9 at 172, and the 2.05×
+  decomposes as 1.56× the pixels multiplied by 1.31× the cost per pixel. That second factor is
+  shingles, foliage, aggregate and a gravel lawn all sharp front to back, which no encoder
+  setting makes cheap — so "generate 16:9" sets the shape and the subject decides the rest.
+  Piccs Pools now carries a pointer to that qualifier.
+- It is also the only example not resting on client photography. The source is a single generated
+  still, so it is the one sequence in the file a reader can reproduce end to end and check their
+  own numbers against — which is why the examples index now reads "four shipped on real client
+  sites, and one reference build" rather than claiming a fifth client.
+
 ## [1.1.0] — 2026-08-07
 
 > Version bumped because `1.0.0` could not complete a run. Anyone who installed before this could
