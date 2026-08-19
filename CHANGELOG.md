@@ -10,7 +10,46 @@ was in the repo at that point rather than a record written as it happened. Every
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-08-19
+
 ### Added
+
+- **Build from nothing.** `storyboard.mjs` no longer requires `--ref`. With only `--idea`, it asks
+  Sol for a photographic description of the opening state, renders that as the first frame, and
+  then writes the storyboard *while looking at the frame it is describing*. Two Sol calls in that
+  order, not one: asking for both at once produces a set of keyframe prompts written against a
+  scene that does not exist yet, and an opening frame with a different fence and a different sun
+  than every prompt meant to describe it. The frame lands beside the storyboard as
+  `<out>.seed.png` and is recorded in `_meta.ref`, so from the second call onwards a seeded run
+  and a photographed run are the same run and nothing downstream needed to learn a second mode.
+  Costs one image, about $0.05, quoted on its own line in the forecast — and quoted as money spent
+  *here* rather than money still to approve, which is why it carries its own estimate kind.
+- **`--dry-run`, on all three scripts that spend.** Prints the plan and the whole bill, sends
+  nothing, charges nothing. On `keyframes.mjs` and `tween.mjs` it prints the *assembled* prompts
+  that would go on the wire — camera lock, anchor clause, art direction and all — not just the
+  sentence from the storyboard, which was about a fifth of the real request. It beats `--yes` on
+  the same command line, because `--yes` is the flag an agent adds by habit and a preview that can
+  be argued into a purchase is not a preview. Registered once in kie.mjs's shared boolean table
+  rather than three times, so it cannot mean different things in different places.
+- **`--style "<one line>"`.** Art direction, carried to every frame. Written to `sb.style` from the
+  flag rather than from the model's reply, and appended by `keyframes.mjs` to every prompt it
+  sends — so the frame Sol forgot to style still gets styled. It matters most on a seeded run:
+  with a photo, the photo is the art direction; with nothing, two runs of the same idea come back
+  looking like two different companies.
+- **`--float`.** Renders onto a flat key-colour field (magenta by default — green loses to
+  vegetation, blue loses to sky, and sky is in shot on nearly every outdoor run) and keys it to
+  transparency in the pass that was already cutting the frames. The subject then sits *on* the
+  page rather than inside a rectangle. No new dependency: no Python, no segmentation model, no
+  per-frame inference. `config.js` gains `window.<VAR>_ALPHA=true`. `--float-tolerance` exists
+  because Kling animates the flat field too and compression leaves a halo of near-key pixels;
+  the contact sheet is where you find out, and re-running that stage costs nothing.
+- **Frame shape is now read off the footage.** `build-frames.mjs` had no concept of one:
+  `scale=W:-2` is correct arithmetic and silent about everything else. It now probes the segments,
+  writes `window.<VAR>_ASPECT` into `config.js` so the page can size the scrub container before a
+  frame has decoded, and treats `--aspect` as a **check** rather than an instruction — refusing
+  when it disagrees with the real footage, which is what catches a mobile build pointed at the
+  desktop segments. That failure previously produced a config that loads, a page that renders and
+  a hero that is quietly the wrong one.
 
 - **A fifth worked example, Common Ground Remodelers** — 160 frames, 26.9 MB, 172 KB/frame at
   1600×900, in `examples/README.md`. It is there to separate two things the file previously ran
@@ -29,6 +68,41 @@ was in the repo at that point rather than a record written as it happened. Every
   30.12 s; GIF 5.4 MB → 7.6 MB, which is the extra runtime and not a worse encode — 42.8 KB per
   frame against the old 42.0. The caption above it stops enumerating the sites instead of growing
   a fourth name, so nothing in the top-level README needed to change but the count.
+
+### Changed
+
+- **The mobile question is now always asked.** There is no defensible silent default: a 16:9 hero
+  on a phone is a letterbox strip, and the centre-crop most builds fall into throws away both
+  sides of every frame — which on this pipeline is where the change is happening. Round 2 of the
+  interview grew from two questions to four (look, quality, phones, page weight); round 1 gained a
+  fourth option on Q1 for having no photo at all.
+- **`--width` follows the frame shape when omitted.** 1600 landscape, 900 portrait. The old flat
+  1600 default applied to a 9:16 run emitted 1600×2844 frames — four times the pixels of the
+  desktop set, for a viewport around 390 CSS px wide. Nothing failed; the budget line just said a
+  number nobody could explain. An explicit `--width` is still obeyed, and values below 64 are now
+  refused: the shared parser catches `--width wide`, but only this knows that 8 is a number and a
+  useless frame width.
+- **`keyframes.mjs` defaults its aspect and resolution from the storyboard** before falling back to
+  16:9/2K, so a portrait run stays portrait instead of changing shape at step 2 and handing Kling
+  two differently-shaped frames for every tween.
+- **The prompt sent to kie.ai is assembled in one named place** rather than inline at the call
+  site. That is what made an honest `--dry-run` possible.
+- **The interview asks the subject question open**, and offers the brand/look question three ways —
+  a path, a description, or nothing. Asked as a demand, people go and find a photo of something
+  else, and a hero anchored to the wrong building is worse than one drawn from a sentence.
+
+### Fixed
+
+- **`$SKILL` no longer assumes Claude Code.** The docs told everyone to set it to
+  `~/.claude/skills/scroll-scrub-hero`, which is wrong for Codex — `~/.codex/skills/` globally,
+  `.agents/skills/` per project — and the failure was `Cannot find module` on the very first
+  command, naming a module rather than the folder that was actually wrong. `doctor.mjs` now works
+  out where it is running from, names the install it recognises, prints a ready-to-paste `SKILL=`
+  line for both shells, and **fails** when `$SKILL` points somewhere else, because a run split
+  across two copies of the skill is the version of this mistake that does not announce itself. Its
+  closing "start with" line is now the absolute path too — the bare `node storyboard.mjs` it used
+  to print only worked from inside `scripts/`, and anyone standing there wrote their outputs into
+  the installed skill. SKILL.md, README.md and AGENTS.md stop hardcoding a path they cannot know.
 
 ## [1.1.0] — 2026-08-07
 

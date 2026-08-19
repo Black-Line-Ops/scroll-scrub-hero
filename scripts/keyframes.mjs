@@ -51,7 +51,8 @@ const rates = pricing ? pricing.loadRates() : null
 const a = args()
 if (!a.storyboard) {
   console.error('usage: node keyframes.mjs --storyboard storyboard.json [--ref <photo>] [--out keyframes/]\n' +
-    '                        [--only 3,5] [--prompt "override for --only"] [--aspect 16:9] [--resolution 2K] [--yes]\n\n' +
+    '                        [--only 3,5] [--prompt "override for --only"] [--aspect 16:9] [--resolution 2K] [--yes]\n' +
+    '                        [--dry-run]  print every prompt and the cost, generate nothing\n\n' +
     '  --yes   skip the confirmation prompt. Required when a script, CI or Claude runs this,\n' +
     '          because there is no keyboard attached to answer the prompt.')
   process.exit(1)
@@ -59,9 +60,50 @@ if (!a.storyboard) {
 requireKey()
 
 const sb = JSON.parse(fs.readFileSync(a.storyboard, 'utf8'))
+
+const CAMERA = sb.camera ? `\n\nCAMERA (identical in every frame, never deviate): ${sb.camera}` : ''
+/* Appended to every prompt for the same reason CAMERA is: a look that is only in the storyboard
+   text survives exactly as long as Sol remembered to repeat it into each keyframePrompt, and the
+   frame it forgets is the one that comes back looking like a different company. Sent last, after
+   the anchor and continuity clauses, so it cannot be read as permission to restyle what is already
+   in the reference - which would be a discontinuity, i.e. the failure this whole file avoids. */
+const STYLE = sb.style ? `\n\nART DIRECTION (identical in every frame): ${sb.style}` : ''
+/* Repeated per frame for the reason STYLE is, with more at stake: a single frame rendered on a
+   sky instead of the flat field is not a slightly-off frame, it is a frame that keys to a
+   ragged hole, and it is found on the contact sheet after every still has been paid for. */
+const FLOAT = sb.float?.color
+  ? `\n\nBACKGROUND (identical in every frame): the subject stands alone on a COMPLETELY FLAT, even ` +
+    `field of solid ${sb.float.color}. No sky, ground, horizon, cast shadow on the field, gradient ` +
+    'or texture. That field becomes transparent later, so nothing that matters may live in it.'
+  : ''
+const ANCHOR = '\n\nThe first attached image is the real location: keep its camera angle, framing, ' +
+  'architecture, fence, trees, neighbouring buildings, horizon, time of day and weather EXACTLY. ' +
+  'Change only what the description says changes.' +
+  /* Dropped on seeded runs, where it is simply false. Told that a generated frame is a
+     photograph of somewhere real, the model starts "restoring" what it believes the real place
+     looks like, and each restoration is a discontinuity between two consecutive keyframes. What
+     the sentence is really doing is forbidding invention, so on the seeded path say that. */
+  (sb._meta?.seeded
+    ? ' Treat the first attached image as fixed ground truth: it is the established scene and'
+      + ' nothing already in it may be redrawn, restyled or relocated.'
+    : ' This is a photograph of a real place, not a concept.')
+const CONTINUITY = ' The second attached image is the previous step; this frame must look like that ' +
+  'same photograph with the described work done, not a different property.'
+/* The prompt that actually goes on the wire, in one place. It used to be assembled inline at the
+   call site, which meant --dry-run could only print step.keyframePrompt - a fifth of the real
+   thing - under a heading promising "the prompts that would be sent". A preview that omits the
+   camera lock, the anchor clause and the art direction is not a preview of this request; it is a
+   different request that happens to share a sentence. */
+const buildPrompt = (step, prev, override = null) =>
+  (override || step.keyframePrompt) + CAMERA + ANCHOR + (prev?.url ? CONTINUITY : '') + STYLE + FLOAT
 const outDir = path.resolve(a.out || 'keyframes')
-const aspect = a.aspect || '16:9'
-const resolution = a.resolution || '2K'
+/* Flag first, then whatever the storyboard was actually built at, then the old default. The
+   middle term is not a nicety: on a seeded run storyboard.mjs has already rendered keyframe 1 at
+   a chosen shape, and defaulting to 16:9 here would hand Kling a 9:16 first frame and a 16:9
+   second one for every tween in the run. The failure is not an error - it is a paid video that
+   pans and crops, discovered at the contact sheet. */
+const aspect = a.aspect || sb._meta?.aspect || '16:9'
+const resolution = a.resolution || sb._meta?.resolution || '2K'
 const stateFile = path.join(outDir, '_state.json')
 const st = state.load(stateFile)
 fs.mkdirSync(outDir, { recursive: true })
@@ -219,6 +261,26 @@ if (toGenerate.length) {
         'ends up measured rather than assumed.'
       : 'so a run that goes unpriced here can still be priced afterwards.')
   console.log(costLine)
+    /* Ahead of the confirm, and ahead of --yes. A dry run that another flag on the same line can
+     talk into spending is not a dry run - and --yes is precisely the flag an agent adds by habit.
+     The prompts are printed here and nowhere else: reading what is actually about to be sent,
+     before paying for it, is the whole point of the mode. */
+  if (a['dry-run']) {
+    console.log('\n--dry-run: the prompts that would be sent, in order\n')
+    for (const step of toGenerate) {
+      console.log(`  keyframe ${step.id} - ${step.label}`)
+      /* The assembled request, not step.keyframePrompt. That field is about a fifth of what goes on
+         the wire; printing it under a heading that promises "the prompts that would be sent" would
+         be the exact species of claim this repo is written to avoid. st.frames is read live rather
+         than assumed empty, because on a resumed run some frames really are cached and those steps
+         really will carry the continuity clause. */
+      const full = buildPrompt(step, st.frames[step.id - 1], only && a.prompt ? a.prompt : null)
+      console.log(String(full || '(none)').split('\n').map(l => '      ' + l).join('\n'))
+      console.log('')
+    }
+    console.log('Nothing was generated and nothing was charged. Drop --dry-run to run it.')
+    process.exit(0)
+  }
   if (!await confirm('Generate these stills?', { yes: !!a.yes, whatItCosts: costLine })) {
     console.log('aborted - nothing generated, nothing charged')
     process.exit(1)
@@ -269,12 +331,6 @@ if (realAfterPending) {
   } catch (_) { /* ffprobe is optional here - the warning is a nicety, not a gate */ }
 }
 
-const CAMERA = sb.camera ? `\n\nCAMERA (identical in every frame, never deviate): ${sb.camera}` : ''
-const ANCHOR = '\n\nThe first attached image is the real location: keep its camera angle, framing, ' +
-  'architecture, fence, trees, neighbouring buildings, horizon, time of day and weather EXACTLY. ' +
-  'Change only what the description says changes. This is a photograph of a real place, not a concept.'
-const CONTINUITY = ' The second attached image is the previous step; this frame must look like that ' +
-  'same photograph with the described work done, not a different property.'
 
 /* Which stills THIS process paid for, as against which ones state happens to hold a figure for.
    They differ on every --only re-run: the earlier record, credits and all, is still on disk and
@@ -290,8 +346,7 @@ for (const step of sb.steps) {
   const inputs = [refUrlRec.url]
   if (prev?.url) inputs.push(prev.url)
 
-  const prompt = (only && a.prompt ? a.prompt : step.keyframePrompt) +
-    CAMERA + ANCHOR + (prev?.url ? CONTINUITY : '')
+  const prompt = buildPrompt(step, prev, only && a.prompt ? a.prompt : null)
 
   console.log(`keyframe ${step.id} (${step.label})...`)
   const taskId = await createTask('gpt-image-2-image-to-image', {

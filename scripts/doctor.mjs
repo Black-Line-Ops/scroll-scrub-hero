@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { fileURLToPath } from 'node:url'
 
 const ok = (m) => console.log(`  OK    ${m}`)
 const bad = (m, fix) => { console.log(`  MISS  ${m}`); if (fix) console.log(`        ${fix}`); return 1 }
@@ -33,6 +34,48 @@ const major = parseInt(process.versions.node.split('.')[0], 10)
 if (major >= 18) ok(`Node ${process.versions.node}`)
 else problems += bad(`Node ${process.versions.node} is too old (need 18+ for built-in fetch)`,
   'Install a current Node from nodejs.org, then reopen your terminal.')
+
+/* --- where this skill actually lives ---
+
+   Every command in SKILL.md, README.md and AGENTS.md is written as `"$SKILL/scripts/..."`, and
+   until now the docs told you to set $SKILL to `~/.claude/skills/scroll-scrub-hero`. That is right
+   for Claude Code and wrong for Codex, which installs to `~/.codex/skills/` globally or
+   `.agents/skills/` per project. A Codex user who pasted the documented line got "Cannot find
+   module" on the FIRST command and no indication that the only thing wrong was a folder name.
+
+   Nothing here is guessed. This file knows its own location, so the answer is derived rather than
+   searched for, and it stays correct for installs nobody has thought of yet. */
+const SKILL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const HOME = os.homedir()
+/* Recognising the host is a nicety - the path above is authoritative either way - but naming it
+   turns "that string looks plausible" into "yes, that is my Codex install". */
+const KNOWN_ROOTS = [
+  [path.join(HOME, '.claude', 'skills'), 'Claude Code (global)'],
+  [path.join(HOME, '.codex', 'skills'), 'Codex (global)'],
+  [path.join(process.cwd(), '.agents', 'skills'), 'Codex (this project)'],
+  [path.join(process.cwd(), '.claude', 'skills'), 'Claude Code (this project)'],
+]
+const sameDir = (a, c) => path.resolve(a).toLowerCase() === path.resolve(c).toLowerCase()
+const host = KNOWN_ROOTS.find(([root]) => sameDir(path.dirname(SKILL_ROOT), root))
+ok(`installed at ${SKILL_ROOT}${host ? `  - ${host[1]}` : ''}`)
+if (!host) {
+  /* Not a problem. Running from a clone is how the skill is developed, and how plenty of people
+     will try it before installing it. Said out loud only so nobody spends time hunting for a
+     misinstall that is not there. */
+  note('that is not one of the usual install folders - fine if you are running from a clone')
+}
+/* The stale-$SKILL case, which is the one that actually bites: the variable is set, so every
+   command runs, and they all run against a copy that may be an older version. Comparing rather
+   than trusting is the whole point - a doctor that reports on a directory it is not in is
+   reporting on somebody else's install. */
+if (process.env.SKILL && !sameDir(process.env.SKILL, SKILL_ROOT)) {
+  problems += bad(`$SKILL points at ${process.env.SKILL}, but this doctor is running from ${SKILL_ROOT}`,
+    'Re-set $SKILL to the path above, or you will be running two different copies of the skill.')
+}
+/* Printed unconditionally, in both shells, ready to paste. The docs can stop hardcoding a path
+   they cannot know, and this is the line that replaces it. */
+console.log(`        bash:       SKILL="${SKILL_ROOT.split(path.sep).join('/')}"`)
+console.log(`        PowerShell: $SKILL = "${SKILL_ROOT}"`)
 
 /* --- ffmpeg + ffprobe --- */
 let haveFfmpeg = false
@@ -357,8 +400,15 @@ if (!pricing) {
 
 console.log()
 if (!problems) {
+  /* The absolute path, not a bare `node storyboard.mjs`. AGENTS.md is explicit that the scripts are
+     invoked from a scratch directory OUTSIDE the skill folder, so the bare form this used to print
+     only worked if you happened to be standing in scripts/ - and if you were, your outputs landed
+     inside the installed skill. */
+  const RUN = `node "${SKILL_ROOT.split(path.sep).join('/')}/scripts/storyboard.mjs"`
   console.log('All good. Start with:\n')
-  console.log('  node storyboard.mjs --ref "path/to/photo.jpg" --idea "what transforms" --steps 6\n')
+  console.log(`  ${RUN} --ref "path/to/photo.jpg" --idea "what transforms" --steps 6\n`)
+  console.log('  No photo? Leave --ref off and the opening frame is drawn from the idea:\n')
+  console.log(`  ${RUN} --idea "empty lot to finished house" --steps 6\n`)
 } else {
   console.log(`${problems} thing(s) to fix before running the pipeline.\n`)
   if (!process.env.KIE_API_KEY) {

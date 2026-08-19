@@ -27,14 +27,20 @@ skill folder.** Set both before the first command.
 
 ```bash
 mkdir -p myproject/.scrub-hero/jones && cd myproject/.scrub-hero/jones
-SKILL="$HOME/.claude/skills/scroll-scrub-hero"     # adjust if installed elsewhere
+SKILL="/absolute/path/to/scroll-scrub-hero"        # the folder holding SKILL.md - see below
 ```
 
 ```powershell
 New-Item -ItemType Directory -Force myproject\.scrub-hero\jones | Out-Null
 Set-Location myproject\.scrub-hero\jones
-$SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"
+$SKILL = "C:\absolute\path\to\scroll-scrub-hero"
 ```
+
+`$SKILL` is the directory holding `SKILL.md`, which you are already reading — use that path,
+do not copy one from a README. `~/.claude/skills/` is Claude Code; Codex installs to
+`~/.codex/skills/` globally or `.agents/skills/` per project, and the wrong one fails on the
+first command with `Cannot find module`. `node "$SKILL/scripts/doctor.mjs"` prints the correct
+line for the machine it is on, and refuses to run if `$SKILL` disagrees with where it lives.
 
 Never run the scripts with the skill folder as the working directory. Their outputs
 (`storyboard.json`, `keyframes/`, `segments/`) are written relative to the cwd, so doing that

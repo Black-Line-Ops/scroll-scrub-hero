@@ -16,7 +16,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const a = args()
 if (!a.storyboard) {
   console.error(`usage: node "${path.join(HERE, 'tween.mjs')}" --storyboard storyboard.json [--keyframes keyframes/]\n` +
-    '         [--out segments/] [--mode pro|std|4K] [--duration 5] [--aspect 16:9] [--only 3] [--yes]\n\n' +
+    '         [--out segments/] [--mode pro|std|4K] [--duration 5] [--aspect 16:9] [--only 3] [--yes]\n' +
+    '         [--dry-run]  print every motion prompt and the cost, generate nothing\n\n' +
     '  --yes   skip the confirmation prompt. Required when a script, CI or Claude runs this,\n' +
     '          because there is no keyboard attached to answer the prompt.')
   process.exit(1)
@@ -195,6 +196,19 @@ const costLine =
     : 'so the cost of a given --duration is something you can look up afterwards instead of guess.')
 console.log(costLine)
 
+/* Ahead of the confirm and ahead of --yes, for the reason keyframes.mjs puts it there. This is
+   the expensive stage - video is roughly four fifths of a run - so it is also the one where
+   reading the prompts first is worth the most. */
+if (a['dry-run']) {
+  console.log('\n--dry-run: the motion prompts that would be sent, in order\n')
+  for (const m of todo) {
+    console.log(`  segment ${m.from} -> ${m.to}`)
+    console.log(String(m.prompt || '(no prompt)').split('\n').map(l => '      ' + l).join('\n'))
+    console.log('')
+  }
+  console.log('Nothing was generated and nothing was charged. Drop --dry-run to run it.')
+  process.exit(0)
+}
 if (!await confirm('Proceed?', { yes: !!a.yes, whatItCosts: costLine })) {
   console.log('aborted - nothing generated, nothing charged')
   process.exit(1)

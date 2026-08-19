@@ -61,8 +61,12 @@ Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 
 ## 🎬 What it actually does
 
-You give it a photograph and a sentence. It:
+You give it a photograph and a sentence — or, if the thing does not exist yet, just the
+sentence. It:
 
+0. **Draws the opening frame**, when there is no photo. The idea becomes a photographic
+   description, the description is rendered, and the storyboard is then written *against that
+   frame*. One image, about $0.05. Skip this step and everything below is identical.
 1. **Writes a storyboard** — a multimodal model looks at your photo and plans the steps.
 2. **Renders keyframe stills** — image-to-image *from your photo*, so the real building, fence
    and skyline stay recognisable instead of drifting into generic AI scenery.
@@ -224,17 +228,26 @@ echo 'export KIE_API_KEY="your-key-here"' >> ~/.zshrc
 Then point `SKILL` at the folder you installed into and run the preflight. This is the only check
 this README asks you to run — it covers the install, the tools and the key in one command:
 
+Set it to **the folder the skill actually landed in** — the one holding `SKILL.md`. The table
+above lists where each host installs; if you are not sure, run the preflight from inside that
+folder once and it prints the exact line to use.
+
 ```bash
 # macOS / Linux / Git Bash
-SKILL="$HOME/.claude/skills/scroll-scrub-hero"                 # adjust to where it landed
+SKILL="/absolute/path/to/scroll-scrub-hero"
 node "$SKILL/scripts/doctor.mjs"
 ```
 
 ```powershell
 # Windows PowerShell
-$SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"   # adjust to where it landed
+$SKILL = "C:\absolute\path\to\scroll-scrub-hero"
 node "$SKILL/scripts/doctor.mjs"
 ```
+
+The first thing it checks is that path. It works out where it is running from, names the install
+it recognises, prints a ready-to-paste `SKILL=` line for both shells, and fails if `$SKILL` is
+already pointing somewhere else — a run split across two copies of the skill is the version of
+this mistake that does not announce itself.
 
 It verifies Node, ffmpeg, that your ffmpeg can actually encode WebP, your key, that kie.ai accepts
 it, and that every route the pipeline calls still exists — and prints the exact fix for anything
@@ -269,9 +282,10 @@ absolute paths for anything outside it:
 
 ```bash
 mkdir -p ~/scrub/jones && cd ~/scrub/jones
-SKILL="$HOME/.claude/skills/scroll-scrub-hero"    # PowerShell: $SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"
+SKILL="/absolute/path/to/scroll-scrub-hero"       # the folder holding SKILL.md; doctor.mjs prints this line for you
 
 node "$SKILL/scripts/storyboard.mjs"   --ref /abs/path/photo.jpg --idea "bare grass to finished pool" --steps 6
+node "$SKILL/scripts/storyboard.mjs"   --idea "empty lot to finished house" --steps 6      # no photo: frame 1 is generated
 node "$SKILL/scripts/keyframes.mjs"    --storyboard storyboard.json     # then open keyframes/contact-sheet.html
 node "$SKILL/scripts/tween.mjs"        --storyboard storyboard.json --mode pro --duration 5 --yes
 node "$SKILL/scripts/build-frames.mjs" --segments segments/ --storyboard storyboard.json --out /abs/path/site/assets/hero-scroll/frames/

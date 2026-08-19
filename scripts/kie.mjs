@@ -373,7 +373,7 @@ export const state = {
 
    Values stay strings, exactly as the call sites already expect them (`parseInt(a.steps || '6')`);
    this validates them, it does not retype them. */
-const BOOLEAN_FLAGS = ['yes', 'help']            /* the only flags that legitimately carry no value */
+const BOOLEAN_FLAGS = ['yes', 'help', 'dry-run', 'float'] /* the only flags that legitimately carry no value */
 const NUMERIC_FLAGS = ['steps', 'duration', 'width', 'per-clip', 'quality', 'budget-mb']
 export function args (argv = process.argv.slice(2), { booleans = [], numbers = [] } = {}) {
   /* A script that adds its own value-less flag passes it in `booleans` rather than editing the

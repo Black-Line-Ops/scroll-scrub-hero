@@ -1,16 +1,18 @@
 ---
 name: scroll-scrub-hero
 description: >
-  Build a scroll-scrubbed hero from one or two REAL photos plus an idea — the kind where
-  scrolling drives a subject through a transformation (bare yard → finished pool, empty room →
-  staged interior, raw stock → machined part, before → after). Uses kie.ai: GPT 5.6 Sol writes
-  the storyboard from the photo, GPT Image 2 image-to-image renders the keyframe stills so the
-  client's ACTUAL property stays recognisable, Kling 3.0 first/last-frame tweens the motion
-  between them, and ffmpeg cuts the result into drop-in scrub frames plus config.js. Use this
-  whenever someone wants a scroll-driven build/progress/before-after hero, mentions scrubbing
-  video on scroll, asks to "animate" a client photo into a hero, wants Kling or kie.ai wired
-  into a site, or wants to turn project photos into a scrolling story — even if they don't say
-  "scroll scrub". Suits a fixed camera with a subject that changes state; not a camera flying through a scene.
+  Build a scroll-scrubbed hero from one or two REAL photos plus an idea — or from the idea alone,
+  with no photo at all. The kind where scrolling drives a subject through a transformation (bare
+  yard → finished pool, empty room → staged interior, raw stock → machined part, before → after).
+  Uses kie.ai: GPT 5.6 Sol writes the storyboard from the photo, GPT Image 2 renders the keyframe
+  stills so the client's ACTUAL property stays recognisable — and draws the opening frame too when
+  there is no photograph to start from — Kling 3.0 first/last-frame tweens the motion between them,
+  and ffmpeg cuts the result into drop-in scrub frames plus config.js. Use this whenever someone
+  wants a scroll-driven build/progress/before-after hero, mentions scrubbing video on scroll, asks
+  to "animate" a client photo into a hero, wants Kling or kie.ai wired into a site, wants to turn
+  project photos into a scrolling story, or wants a scroll hero for something that does not exist
+  yet — even if they don't say "scroll scrub". Suits a fixed camera with a subject that changes
+  state; not a camera flying through a scene.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebFetch
 ---
 
@@ -36,19 +38,35 @@ without a confirmation except the storyboard call, which is under four cents.
 or whether they want `pro`. Ask what they are trying to end up with, in outcomes, and derive
 the flags yourself. Everything in Part 2 is for an expert driving this by hand.
 
-Two rounds of `AskUserQuestion`, four questions then two. Six answers is the whole brief.
+Two rounds of `AskUserQuestion`, four questions each. Eight answers is the whole brief.
 
 ## Before round 1: get the raw material
 
 Ask in chat, not with a question tool — these are paths and sentences, not choices:
 
-1. **The photo** (absolute path). One is enough.
-2. **One sentence on what changes.** "Bare grass to a finished pool with water in it."
-3. **Where the finished hero goes** (absolute path to the site, if it is going into one).
+1. **What is this of?** One sentence, in their words. "Bare grass to a finished pool with water
+   in it." "A blank storefront becoming our new bakery." "An empty server rack filling up."
+   Ask it open. Do not offer categories, do not assume a building, a property or a renovation:
+   the pipeline animates any subject that can hold still while one thing about it changes, and a
+   question phrased in construction gets construction answers from people selling something else.
+2. **A photo of the starting state** (absolute path), **if they have one.** One is enough, and
+   **"I don't have one" is a real answer** — say so in the same breath, or people invent a photo
+   to satisfy the question. Without one the opening frame is generated from the sentence above,
+   for about **$0.05**, and everything after it runs identically.
+3. **Anything that has to look a certain way** — a brand guide, a palette, a site whose look this
+   has to sit next to. Three ways to answer and all of them are fine: **a path** to a brand file
+   or a few reference images, **a description** in their own words, or **nothing** and it is shot
+   as a plain photograph. Offer all three; do not make it homework.
+4. **Where the finished hero goes** (absolute path to the site, if it is going into one).
 
-Look at the photo before you go further. Anything you can see, you must not ask about:
-the aspect ratio, whether there is a house or a fence in shot, what season it is, whether
-the light is flat. Every question you ask is a chance to lose someone.
+If they gave you a photo, look at it before you go further. Anything you can see, you must not
+ask about: the aspect ratio, whether there is a house or a fence in shot, what season it is,
+whether the light is flat. Every question you ask is a chance to lose someone.
+
+If they gave you a brand file, read it and boil it down to **one line** for `--style`. One line,
+not a paragraph — it rides along with the camera lock and the continuity clause on every prompt,
+and a long style block starts winning arguments against the parts that keep consecutive frames
+looking like the same place.
 
 ## Round 1 — the story (4 questions, one `AskUserQuestion` call)
 
@@ -58,9 +76,10 @@ the light is flat. Every question you ask is a chance to lose someone.
 
 | Option | Description to show |
 |---|---|
-| One photo (the before) | The finished state is imagined by the model from your photo. This is what most jobs have and it works. Costs one extra generated still, about **$0.05**. |
 | A real before AND a real after ★ | **Pick this if you have it.** The last frame is your actual finished photograph, copied in rather than invented — the client sees their real result at the end of the scroll. Saves about **$0.05** and removes the biggest source of "that's not what we built". |
+| One photo (the before) | The finished state is imagined by the model from your photo. This is what most jobs have and it works. Costs one extra generated still, about **$0.05**. |
 | Several photos of the same view | Only the first and last are used as anchors; the ones in between are useful to me as description, not as inputs. Same cost as one photo. |
+| No photo — build it from the description | The opening frame is drawn from your sentence, then everything follows from it. About **$0.05** more, and it is the honest option for something that does not exist yet: a build not started, a product not made, a site not broken ground on. Nothing in the finished hero is a real place, so do not put it next to the words "our work". |
 
 ### Q2 · header "End state" — what does the FINAL frame show?
 
@@ -103,12 +122,38 @@ them, which is why it is asked before anything is made rather than after.*
 | A boxed section inside the page | 16:9 but frames built 1200px wide. Identical generation cost, and substantially lighter to download — 1200px is 56% of the pixel area of 1600px. `build-frames.mjs` reports the real figure. |
 | Tall / portrait, phone first | 9:16 or 4:5 instead of 16:9. Same cost. Say so now: the ratio is baked into every still. |
 
-## Round 2 — the spend (2 questions, one `AskUserQuestion` call)
+## Round 2 — look and spend (4 questions, one `AskUserQuestion` call)
 
 Round 1 fixed the stage count, so **substitute the real figures for their answer** from the
 forecast table below. Do not print the six-stage numbers at someone who chose eight.
 
-### Q5 · header "Quality" — a rough test, or the one that goes on the client's site?
+### Q5 · header "Look" — how should it be shot?
+
+*Becomes `storyboard.mjs --style "<one line>"`, which is repeated into every keyframe prompt.
+Costs nothing either way. It matters most when there is no photo: with one, the photo is the art
+direction; with nothing, the model reaches for whatever it likes this week, and two runs of the
+same idea come back looking like two different companies.*
+
+If they gave you a brand file or a description in the pre-round, **do not ask this** — you have
+the answer. Say back the one line you distilled and move on.
+
+| Option | Description to show |
+|---|---|
+| Plain documentary photograph ★ | **Recommended.** Real light, real materials, nothing stylised. The least invention, which is also the fewest chances for two consecutive frames to disagree. |
+| Warm and editorial | Golden light, shallow depth of field, the look of a magazine feature. Reads as more expensive; slightly more likely to need one frame redone (about **$0.05**). |
+| Cool and technical | Flat even light, hard edges, no atmosphere. Right for industrial, engineering, medical and B2B. |
+| Match something I'll show you | You send a brand guide, a palette or a couple of reference shots and it is shot to match. Same cost. |
+
+**Float it, if the subject is an object.** A fifth possibility, not offered as an option because it
+only applies to some jobs: `--float` renders every frame onto a flat magenta field and
+`build-frames.mjs` keys that field out, so the finished frames carry transparency and the subject
+sits **on** the page rather than inside a rectangle. It costs nothing extra and it is the right
+call for a product, a part, a machine, a model — anything with an outline. It is the wrong call
+for a place: a house without its sky and ground is not a house, it is a cutout. Offer it only when
+the subject is a thing rather than a site, and say plainly that the edges want checking on the
+contact sheet.
+
+### Q6 · header "Quality" — a rough test, or the one that goes on the client's site?
 
 | Option | Description to show |
 |---|---|
@@ -116,7 +161,31 @@ forecast table below. Do not print the six-stage numbers at someone who chose ei
 | Final quality ★ | 1920×1080 video. At 6 stages, **about $2.55** — roughly 50 cents more than the test. **Recommended.** This is what ships. It is sharper than the frames end up needing, which is the point: downscaling hides softness. |
 | 4K | 3840×2160. At 6 stages, **about $8.68** — about 3.4× what Final costs. Almost always the wrong answer here, because the last stage downscales every frame to 1600px wide anyway, so you are buying pixels that get thrown away. Only if you need the source video for something else. |
 
-### Q6 · header "Page weight" — how heavy can the finished page afford to be?
+### Q7 · header "Phones" — what should this look like on a phone?
+
+**Always ask this. Never decide it silently.** A 16:9 hero on a phone is a letterbox strip about
+a fifth of the screen tall, and the alternative most builds fall into — centre-cropping the wide
+frames to fill the screen — throws away both sides of every frame, which on this pipeline means
+throwing away the part where the work is happening. Both are choices with real costs. Neither is
+a default anyone should inherit without being told.
+
+Quote the real second-set figure for the stage count they picked: a mobile set is a **second full
+run** of the generation, so it is roughly **double** the total, not a surcharge.
+
+| Option | Description to show |
+|---|---|
+| Letterbox it ★ | **Recommended, and free.** The same 16:9 hero, full width, shorter on screen. Honest, costs nothing extra, and is what almost every scroll hero on the web does. |
+| Build a proper 9:16 version | A second set of frames shot tall, so phones get a full-screen hero composed for the shape. It is a whole second run — at 6 stages that is **about $2.55 more**, roughly double the total. Worth it when most of the traffic is phones and this hero is the page. |
+| Hide it on phones | Phones get a still image instead. Free, fastest to load, and the argument for it is real when the hero is decoration rather than the pitch. |
+
+If they pick the 9:16 build, run the whole pipeline twice — `--aspect 9:16` on the storyboard, and
+a second `build-frames.mjs` into its own folder with its own `--var`. `--width` picks itself:
+omit it and portrait frames build at 900px instead of the landscape 1600px, because 1600px wide at
+9:16 is 1600×2844, four times the pixels, for the smallest screens you serve. Pass
+`--aspect 9:16` to `build-frames.mjs` too — it reads the real shape off the footage and refuses if
+you have pointed it at the desktop segments, which is the mistake that otherwise ships silently.
+
+### Q8 · header "Page weight" — how heavy can the finished page afford to be?
 
 *This one costs no credits. It spends the visitor's data instead: every frame is downloaded and
 decoded by the browser before the scroll feels smooth.*
@@ -144,6 +213,17 @@ and this pipeline's whole failure mode is someone approving a number they never 
 **One recommended default per question, marked.** Someone with no opinion should be able to
 take every ★ and get a good hero. The ★ is not a hedge — it is the answer you would pick.
 
+**Two questions are asked even when you think you know the answer.** They are the exceptions to
+the rule below, and both earned it:
+
+- *Phones.* There is no defensible silent default. Letterboxing and centre-cropping are both
+  choices with real costs, and centre-cropping a scroll hero crops away the sides — which on this
+  pipeline is where the change is happening. Never ship the centre-crop as the mobile version
+  because nobody asked.
+- *Whether they have a photo at all.* Ask it as "if you have one", and say that not having one is
+  fine. Asked as a demand, people go and find a photo of something else, and a hero anchored to
+  the wrong building is worse than one drawn from a sentence.
+
 **Ask only what changes the outcome.** Anything visible in the photo, or safe as a default, is
 not a question. Two things that look like decisions and deliberately are not:
 
@@ -154,8 +234,12 @@ not a question. Two things that look like decisions and deliberately are not:
 - *Resolution of the stills* (`--resolution`) stays at 2K. It is 5 cents an image and the
   frames are downscaled anyway; there is no version of this question worth a user's attention.
 
-**Batch them.** `AskUserQuestion` takes up to four at once. Two rounds beats six prompts, and
+**Batch them.** `AskUserQuestion` takes up to four at once. Two rounds beats eight prompts, and
 round 2 is separate only because it can quote real numbers once round 1 has fixed the count.
+
+**Skip a question you already have the answer to.** If the pre-round produced a brand file or a
+described look, Q5 is not a question, it is a confirmation — say the line back and move on. The
+rounds are a maximum, not a quota.
 
 **Numbers come from the scripts, not from memory.** The table below is a copy of what
 `scripts/pricing.mjs` computes; the scripts print the authoritative figure for the actual run.
@@ -201,20 +285,32 @@ mid-way has been paid for and has no hero to show.
 Then say back, in one short paragraph: the number of stages and clips, the quality, the aspect
 ratio, the target weight, and the estimated total. Then start Part 2.
 
-## Mapping the six answers to flags
+## Mapping the eight answers to flags
 
 | Answer | Where it lands |
 |---|---|
+| No photo | Leave `--ref` off `storyboard.mjs` entirely. It draws the opening frame from `--idea`, writes it next to the storyboard as `<out>.seed.png`, and records it in `_meta.ref` so every later stage treats it exactly like a photograph. **Do not pass `--ref` with an empty or made-up path** — the script refuses that rather than seeding, on purpose. |
 | Real before + after | `storyboard.mjs --ref2 <after.jpg>` — **on storyboard only**. `keyframes.mjs` picks it up from `storyboard.json`'s `_meta.ref2` and copies it in unbilled. |
 | End state | Prose in `--idea`, and a line you check on the storyboard before spending. |
 | Stages | `storyboard.mjs --steps N` |
-| Placement | `--aspect` on `keyframes.mjs` and `tween.mjs` (both default `16:9`), and `--width` on `build-frames.mjs` |
+| Look | `storyboard.mjs --style "<one line>"`. It is written to `sb.style` from your flag, not from the model's reply, and `keyframes.mjs` appends it to every prompt it sends — so a frame Sol forgot to style still gets styled. |
+| Placement | `--aspect` on `storyboard.mjs` (where it now also sets the shape of a generated opening frame), `keyframes.mjs` and `tween.mjs`, and `--width` on `build-frames.mjs` |
 | Quality | `tween.mjs --mode std\|pro\|4K` |
+| Phones | Letterbox: nothing to do. 9:16 build: a second pass of the whole pipeline at `--aspect 9:16`, its own `--out`, its own `--var`, and no `--width` (portrait picks 900 for itself). |
 | Page weight | `build-frames.mjs --budget-mb` — then take the `--per-clip` / `--width` / `--quality` it suggests if it lands over |
 
-Pass the quality and stage answers to `storyboard.mjs` as well — `--mode`, `--resolution` and
-`--duration` change nothing it does, they exist so the forecast it prints describes the run
-that is actually going to be ordered.
+Pass the quality and stage answers to `storyboard.mjs` as well — `--mode` and `--duration` change
+nothing it does, they exist so the forecast it prints describes the run that is actually going to
+be ordered. `--aspect` and `--resolution` are forecast-only **with** a photo and **real** without
+one, because they are the shape and size the opening frame is drawn at.
+
+**`--dry-run` before you spend.** `storyboard.mjs`, `keyframes.mjs` and `tween.mjs` all take it,
+it means the same thing in all three — print the plan and the whole bill, send nothing, charge
+nothing — and it beats `--yes` on the same command line, so an agent's habitual `--yes` cannot
+turn a preview into a purchase. On `keyframes.mjs` and `tween.mjs` it prints the assembled prompts
+that would actually go on the wire, camera lock and art direction included, not just the sentence
+from the storyboard. Use it whenever you are about to spend somebody else's money for the first
+time.
 
 ---
 
@@ -247,16 +343,20 @@ as a hard design input, not an afterthought — `build-frames.mjs` reports it an
 ## Before starting
 
 Every command in this document invokes the scripts through `$SKILL`, so set that first. It is
-the absolute path of the folder holding this `SKILL.md` — wherever the install put it:
+**the absolute path of the folder holding this `SKILL.md`** — you are reading this file, so you
+already know where that is. Use it. Do not copy a path out of a README: `~/.claude/skills/` is
+right for Claude Code and wrong for Codex, which installs to `~/.codex/skills/` globally or
+`.agents/skills/` inside a project, and a wrong `$SKILL` fails on the very first command with
+`Cannot find module` and no hint that a folder name is the only thing wrong.
 
 ```bash
-# macOS / Linux / Git Bash
-SKILL="$HOME/.claude/skills/scroll-scrub-hero"                 # adjust if installed elsewhere
+# macOS / Linux / Git Bash — the folder this SKILL.md is in
+SKILL="/absolute/path/to/scroll-scrub-hero"
 ```
 
 ```powershell
-# Windows PowerShell
-$SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"   # adjust if installed elsewhere
+# Windows PowerShell — the folder this SKILL.md is in
+$SKILL = "C:\absolute\path\to\scroll-scrub-hero"
 ```
 
 Both shells expand `$SKILL` inside double quotes, so every `node "$SKILL/scripts/…"` line below
@@ -267,6 +367,11 @@ Then run the preflight. It takes no arguments and works from any directory:
 ```bash
 node "$SKILL/scripts/doctor.mjs"
 ```
+
+Its first check is the path itself. It works out where it is running from, names the install it
+recognises, prints the ready-to-paste `SKILL=` line for both shells, and **fails** if `$SKILL` is
+already set to somewhere else — because a run split across two copies of the skill is the version
+of this mistake that does not announce itself.
 
 It checks Node 18+, ffmpeg, ffprobe, that this ffmpeg actually carries the libwebp encoder step 5
 depends on, `KIE_API_KEY`, whether kie.ai accepts that key, whether every route the pipeline calls
@@ -302,13 +407,13 @@ Every command below is written to be run from that one scratch directory, with `
 
 ```bash
 mkdir -p myproject/.scrub-hero/jones && cd myproject/.scrub-hero/jones
-SKILL="$HOME/.claude/skills/scroll-scrub-hero"     # adjust if installed elsewhere
+SKILL="/absolute/path/to/scroll-scrub-hero"        # the folder holding SKILL.md
 ```
 
 ```powershell
 New-Item -ItemType Directory -Force myproject\.scrub-hero\jones | Out-Null
 Set-Location myproject\.scrub-hero\jones
-$SKILL = "$env:USERPROFILE\.claude\skills\scroll-scrub-hero"
+$SKILL = "C:\absolute\path\to\scroll-scrub-hero"
 ```
 
 Nothing below ever needs a second `cd`: the scripts are addressed through `$SKILL`, and anything
@@ -338,10 +443,32 @@ both anchors are real — and it takes one still off the bill.
 node "$SKILL/scripts/storyboard.mjs" --ref /abs/path/photo.jpg --idea "<the idea>" --steps 6 --out storyboard.json
 ```
 
+With no photograph, drop `--ref` and the script draws the opening frame from the idea first:
+
+```bash
+node "$SKILL/scripts/storyboard.mjs" --idea "<the idea>" --steps 6 --aspect 16:9 --out storyboard.json
+```
+
+That is two Sol calls rather than one, in a deliberate order: the idea becomes a photographic
+description, the description is rendered, and only then is the storyboard written — by Sol
+*looking at the frame it is describing*. Asking for both at once produces eleven prompts written
+against a scene that does not exist yet, and an opening frame with a different fence and a
+different sun than all of them. The frame lands beside the storyboard as `<out>.seed.png` and is
+recorded in `_meta.ref`; from there on a seeded run and a photographed run are the same run.
+**Look at that frame before going further** — re-running this script is cents, re-running the
+video stage is not.
+
 Add `--ref2 /abs/path/after.jpg` when there is a real finished photo; that flag belongs here and
-nowhere else — `keyframes.mjs` reads it back out of `storyboard.json`. The forecast-only flags
-`--resolution`, `--mode` and `--duration` change nothing this script does; they make the
-whole-run forecast it prints describe the run you are actually going to order.
+nowhere else — `keyframes.mjs` reads it back out of `storyboard.json`. `--style "<one line>"`
+carries the art direction to every frame. `--mode` and `--duration` change nothing this script
+does; they make the whole-run forecast it prints describe the run you are actually going to
+order. `--aspect` and `--resolution` are forecast-only **with** `--ref` and real **without** it,
+because then they are the shape and size the opening frame is drawn at — and `keyframes.mjs`
+defaults its own `--aspect` from what is recorded here, so a portrait run stays portrait.
+
+`--dry-run` prints the plan and the entire bill and sends nothing. Same flag, same meaning, on
+`keyframes.mjs` and `tween.mjs`, where it also prints the assembled prompts that would go on the
+wire. It wins over `--yes` on the same command line.
 
 Before it calls Sol it prints that forecast — every stage, with the total and your balance —
 then makes the one call. There is deliberately **no y/n gate here**: the Sol call is the
@@ -431,6 +558,25 @@ alongside the `clipN/` directories. It reports per-clip and total weight; if the
 above the `--budget-mb` figure (35 MB by default) it names the smaller `--per-clip`, `--width`
 and `--quality` that would bring it under. This costs nothing to re-run, so tune it here rather
 than shipping something heavy.
+
+It reads the **frame shape off the footage** rather than from a flag, prints it, and writes it
+into `config.js` as `window.<VAR>_ASPECT` so the page can size the scrub container before a single
+frame has decoded. Two things follow from that. `--width` picks itself when you omit it — 1600 for
+landscape, 900 for portrait, because 1600 wide at 9:16 is 1600×2844, four times the pixels, aimed
+at the smallest screens you serve. And `--aspect 9:16` here is a **check, not an instruction**: it
+compares against the real footage and refuses if they disagree, which is what catches a mobile
+build accidentally pointed at the desktop segments — a mistake that otherwise produces a config
+that loads, a page that renders, and a hero that is silently the wrong one.
+
+If the storyboard was made with `--float`, this is where the knockout happens: the recorded key
+colour is read from `storyboard.json`, ffmpeg keys it to transparency in the same pass that cuts
+the frames, and `config.js` gains `window.<VAR>_ALPHA=true`. No extra dependency — no Python, no
+segmentation model — because the frames were rendered onto a flat field on purpose. **Look at the
+first clip before trusting the rest.** Kling animates that field too and video compression leaves
+a halo of near-key pixels, so edges fray; `--float-tolerance` (0.30 by default, 0–1) is the dial
+and re-running this stage costs nothing. `--float-color` overrides the recorded colour. A `--float`
+against a storyboard that recorded no colour is refused rather than guessed, because keying the
+wrong colour removes nothing and looks exactly like a knockout that was never asked for.
 
 Before it writes anything it cross-checks the segments on disk against the storyboard's
 `motions`. If the storyboard describes a segment that has no video, it names the missing pairs,

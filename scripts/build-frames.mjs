@@ -13,7 +13,9 @@ import { state, args } from './kie.mjs'
 const a = args(process.argv.slice(2), { booleans: ['allow-gaps'] })
 if (!a.segments || !a.storyboard || !a.out) {
   console.error('usage: node build-frames.mjs --segments segments/ --storyboard storyboard.json --out <site>/assets/hero-scroll/frames/\n' +
-    '                          [--width 1600] [--per-clip 40] [--quality 78] [--budget-mb 35] [--var HERO] [--allow-gaps]\n\n' +
+    '                          [--width <px>] [--aspect 16:9] [--per-clip 40] [--quality 78] [--budget-mb 35] [--var HERO] [--allow-gaps]\n' +
+    '                          omit --width and it follows the frame shape: 1600 landscape, 900 portrait\n' +
+    '                          [--float] [--float-color "#FF00FF"] [--float-tolerance 0.30]  key the flat background to transparent\n\n' +
     '  --allow-gaps  build from whatever clips exist instead of stopping when the storyboard\n' +
     '                describes segments that have no video. For the bring-your-own-clips path.')
   process.exit(1)
@@ -21,11 +23,55 @@ if (!a.segments || !a.storyboard || !a.out) {
 
 const sb = JSON.parse(fs.readFileSync(a.storyboard, 'utf8'))
 const segState = state.load(path.join(a.segments, '_state.json'))
-const width = parseInt(a.width || '1600', 10)
+/* Resolved after the first segment is probed - see `resolveWidth` below. A portrait run at the
+   old flat 1600 default produced 1600x2844 frames: four times the pixels of the landscape set,
+   for a phone screen that is 390 CSS px wide. Nothing failed. The budget line at the bottom just
+   said 140 MB and nobody could see why. */
+/* The shared parser has already refused anything that is not a number - width is in its
+   NUMERIC_FLAGS - so the only thing left to catch is a number that is technically valid and
+   useless. `--width 8` encodes cleanly, writes a config that loads, and ships a hero built out
+   of thumbnails. 64 is well below anything anyone means and still above every accident. */
+const widthFlag = a.width == null ? null : parseInt(a.width, 10)
+if (widthFlag !== null && widthFlag < 64) {
+  console.error(`--width ${widthFlag} is too small to build a hero from; use at least 64, or omit it to pick by frame shape.`)
+  process.exit(1)
+}
+let width = widthFlag ?? 1600
 const perClip = parseInt(a['per-clip'] || '40', 10)
 const quality = parseInt(a.quality || '78', 10)
 const budgetMb = parseFloat(a['budget-mb'] || '35')
 const prefix = a.var || 'HERO'
+/* The knockout. Defaulted from the storyboard rather than required on the command line, because
+   the storyboard is what knows: the frames were RENDERED against this colour, and keying against
+   any other one removes nothing while looking exactly like a knockout that never ran. An explicit
+   flag still wins - re-keying at a different tolerance is the normal repair when edges fray.
+
+   Tolerance is the number people will actually reach for. Kling animates the flat field along
+   with everything else and h.264 leaves a halo of near-key pixels around the subject, so the
+   theoretical answer (0.01, exact match) leaves a magenta fringe and the lazy answer (0.60) eats
+   into the subject. 0.30 is the middle, and re-running this stage costs nothing. */
+const floatColor = typeof a['float-color'] === 'string' && a['float-color'].trim()
+  ? a['float-color'].trim()
+  : (sb.float?.color || null)
+const floating = !!a.float || (typeof a['float-color'] === 'string' && !!a['float-color'].trim()) || !!sb.float
+if (floating && !floatColor) {
+  console.error('--float needs a colour: this storyboard did not record one, so pass --float-color "#FF00FF".')
+  console.error('It has to be the colour the frames were actually rendered against, or nothing is removed.')
+  process.exit(1)
+}
+if (floating && !/^#?[0-9a-fA-F]{6}$/.test(floatColor)) {
+  console.error(`--float-color must be a 6-digit hex colour like "#FF00FF", got "${floatColor}"`)
+  process.exit(1)
+}
+const floatTolerance = a['float-tolerance'] == null ? 0.30 : Number(a['float-tolerance'])
+if (floating && (!Number.isFinite(floatTolerance) || floatTolerance < 0 || floatTolerance > 1)) {
+  console.error(`--float-tolerance is a fraction between 0 and 1, got "${a['float-tolerance']}"`)
+  process.exit(1)
+}
+/* ffmpeg wants 0xRRGGBB. Accept the # people actually type and translate rather than refusing. */
+const floatFilter = floating
+  ? `,colorkey=0x${floatColor.replace(/^#/, '').toUpperCase()}:${floatTolerance}:0.10,format=rgba`
+  : ''
 const outDir = a.out
 
 /* This value is interpolated straight into generated JavaScript source (window.<prefix>_SEQ), so
@@ -193,6 +239,57 @@ fs.mkdirSync(outDir, { recursive: true })
 const cfgFile = path.join(outDir, 'config.js')
 fs.rmSync(cfgFile, { force: true })
 
+/* ---------- what shape is this footage, and is that the shape you asked for? ----------
+
+   Derived from the pixels, not from a flag and not from the storyboard. By the time this script
+   runs the segments are finished files; anything else here would be a claim about them rather
+   than a reading of them. --aspect, when given, is checked AGAINST this rather than used instead
+   of it - which is the whole value of the flag now that a run can have two frame sets. Building
+   the mobile set out of last week's landscape segments produces a config that loads, a page that
+   renders, and a hero that is silently the wrong one; the only moment that is cheap to catch is
+   here, before 240 frames are encoded. */
+const shapeProbe = probe(segments[0].file)
+const shapeStream = (shapeProbe.streams || []).find(v => v && v.width && v.height)
+let footageAspect = null
+if (shapeStream) {
+  const r = shapeStream.width / shapeStream.height
+  /* Named ratios rather than a raw float, because that is what everything downstream speaks:
+     kie.ai takes `aspect_ratio: "9:16"`, the storyboard records one, and the page CSS needs one.
+     The tolerance absorbs the even-dimension rounding that `scale=w:-2` and the encoders do. */
+  const NAMED = [['21:9', 21 / 9], ['16:9', 16 / 9], ['3:2', 3 / 2], ['4:3', 4 / 3], ['1:1', 1],
+    ['3:4', 3 / 4], ['2:3', 2 / 3], ['9:16', 9 / 16], ['9:21', 9 / 21]]
+  const hit = NAMED.find(([, v]) => Math.abs(r - v) / v < 0.04)
+  footageAspect = hit ? hit[0] : `${shapeStream.width}:${shapeStream.height}`
+  const portrait = r < 1
+
+  if (a.aspect && String(a.aspect) !== footageAspect) {
+    console.error(`\n  !! --aspect ${a.aspect} was asked for, but ${path.basename(segments[0].file)} is ` +
+      `${shapeStream.width}x${shapeStream.height} (${footageAspect}).`)
+    console.error('     These are almost certainly the wrong segments - a mobile build pointed at the')
+    console.error('     desktop run, or the reverse. Nothing has been encoded. Check --segments.')
+    process.exit(1)
+  }
+
+  /* The default width follows the shape. 1600 is a landscape number: at 9:16 it produces
+     1600x2844 frames - four times the pixels of the desktop set, for a viewport that is around
+     390 CSS px wide. It did not fail, it just quietly cost 140 MB. An explicit --width is always
+     obeyed; only the default moves. */
+  if (widthFlag === null && portrait) width = 900
+  console.log(`footage is ${shapeStream.width}x${shapeStream.height} (${footageAspect}) -> ` +
+    `${width}px wide frames${widthFlag === null && portrait ? ' (portrait default; --width overrides)' : ''}`)
+} else if (a.aspect) {
+  /* An unreadable stream is not worth exiting over - the encode loop probes every file again and
+     fails properly there - but it does mean the check above did not happen, and a check that
+     silently did not run is worse than one that was never written. */
+  console.log(`  !! could not read the frame size of ${path.basename(segments[0].file)}, so --aspect ${a.aspect} was not verified`)
+}
+
+if (floating) {
+  console.log(`keying ${floatColor} to transparent at tolerance ${floatTolerance} - frames will carry alpha`)
+  console.log('  Check the edges on the first clip before trusting the rest: AI video leaves a halo of')
+  console.log('  near-key pixels, and --float-tolerance is the dial. Re-running this stage costs nothing.')
+}
+
 const seq = []
 let totalBytes = 0
 
@@ -227,7 +324,7 @@ for (const seg of segments) {
   console.log(`clip${chapter}  <- ${path.basename(seg.file)}  ${dur.toFixed(2)}s -> ${perClip} frames @ ${width}px`)
   try {
     ff(['-i', seg.file,
-      '-vf', `fps=${fps},scale=${width}:-2:flags=lanczos`,
+      '-vf', `fps=${fps},scale=${width}:-2:flags=lanczos${floatFilter}`,
       '-vsync', '0',
       '-c:v', 'libwebp', '-quality', String(quality), '-preset', 'picture',
       path.join(dir, 'frame-%04d.webp')])
@@ -307,7 +404,16 @@ for (const seg of segments) {
   building = null
 }
 
-const cfg = `window.${prefix}_EXT="webp";\nwindow.${prefix}_SEQ=[\n` +
+/* The aspect goes into the config because the page needs it before it has fetched a single
+   frame: without it the scrub container has no height until the first WebP decodes, and the
+   whole hero pops into place after load. It is also how a page tells the two frame sets apart
+   once there are two of them. */
+const cfg = `window.${prefix}_EXT="webp";\n` +
+  (footageAspect ? `window.${prefix}_ASPECT="${footageAspect}";\n` : '') +
+  /* Alpha changes what the page should do behind the canvas - a knocked-out hero is meant to sit
+     on the page's own background, and a wrapper that paints one anyway throws the effect away. */
+  (floating ? `window.${prefix}_ALPHA=true;\n` : '') +
+  `window.${prefix}_SEQ=[\n` +
   seq.map(s => '  ' + JSON.stringify(s) + ',').join('\n') +
   '\n];\n'
 /* Write-then-rename, the same shape state.save() uses in kie.mjs. config.js is never the file
