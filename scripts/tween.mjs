@@ -160,6 +160,70 @@ if (balance) costLines.push(`  account   ${pricing.formatBalance(balance, est)}`
 const shortOfCredit = !!(balance && balance.known && est && est.known && !est.partial &&
   est.credits && balance.credits < est.credits.high)
 
+/* ---------- cheaper ways to order the SAME run ----------
+
+   This gate approves about 88% of what a run costs: five 5s pro segments are ~$2.25 of a ~$2.55
+   total, and the six stills before them are ~$0.30. So this is the one prompt in the pipeline
+   where a savings hint earns the lines it occupies - the same hint on the keyframe gate would be
+   pointing at the small number.
+
+   Both levers are re-runnable at zero cost. Nothing has been generated when this prints, so
+   answering n and re-running with a flag is free; that is worth saying out loud, because the
+   reason people do not change a setting at a y/n prompt is usually that they assume backing out
+   wastes something.
+
+   Every figure comes from pricing.mjs, computed for THIS segment count - not from a table in a
+   comment that drifts. Options that are not actually cheaper, or that name the setting already
+   chosen, are dropped rather than printed at a saving of zero: a list padded with non-options is
+   noise at exactly the moment attention is worth most. */
+const cheaper = []
+if (pricing && est && est.known && est.usd) {
+  const CANDIDATES = [
+    { flag: '--mode std', mode: 'std',
+      why: ['same story, same composition, softer source. build-frames',
+        `keeps only ${PER_CLIP} frames a clip and downscales them anyway.`] },
+    { flag: '--duration 3', seconds: 3,
+      /* The caveat is not optional. SKILL.md deliberately keeps duration out of the interview
+         because shortening a segment is ALSO the first cheap repair when a seam cuts, and a run
+         that starts at the floor has nothing left to give. Printing the saving without that
+         sentence would quietly undo a decision made on purpose. */
+      why: [`still renders ~${3 * SRC_FPS + 1} frames a segment, well above the ${PER_CLIP} kept.`,
+        'But 5s is deliberate. Shortening a segment is also the',
+        'first cheap fix when a seam cuts; start at 3s and there',
+        'is nothing left to give.'] },
+    { flag: '--mode std --duration 3', mode: 'std', seconds: 3,
+      why: ['both levers together, with both caveats above.'] },
+  ]
+  for (const c of CANDIDATES) {
+    if ((c.mode ?? mode) === mode && (c.seconds ?? duration) === duration) continue
+    const alt = pricing.estimateTween({
+      segments: todo.length, seconds: c.seconds ?? duration, mode: c.mode ?? mode, rates,
+    })
+    if (!alt.known || !alt.usd) continue
+    const saving = est.usd.low - alt.usd.low
+    if (saving < 0.01) continue
+    /* Whether this one FITS is the most useful thing on the line for the person who cannot
+       afford the run as configured - which is the only reader who is definitely going to read
+       it. Tested against the high end, same as shortOfCredit above, so a floor is never
+       mistaken for a total. */
+    const fits = !!(balance && balance.known && !alt.partial && alt.credits &&
+      balance.credits >= alt.credits.high)
+    cheaper.push({ flag: c.flag, alt, saving, why: c.why, fits })
+  }
+}
+const cheaperBlock = cheaper.length
+  ? '\nCheaper ways to order this same run. Nothing has been generated yet, so answering n and\n' +
+    'starting again with one of these costs nothing:\n' +
+    cheaper.map(c =>
+      /* WHY is indented to line up under the cost column rather than under the flag: the flag is
+         the thing being scanned for, and prose starting in the same column as the flags turns the
+         list into a paragraph. 26 = the two leading spaces + the 24-wide flag column. */
+      `  ${c.flag.padEnd(24)}${pricing.formatCost(c.alt, { caveat: false })}` +
+      `  save ~$${c.saving.toFixed(2)}${shortOfCredit && c.fits ? '   <- this one fits your balance' : ''}\n` +
+      c.why.map(l => `${' '.repeat(26)}${l}`).join('\n')
+    ).join('\n') + '\n'
+  : ''
+
 const costLine =
   `\nAbout to generate ${todo.length} video segment(s)\n` +
   `  model     kling-3.0/video\n` +
@@ -167,15 +231,17 @@ const costLine =
   `  duration  ${duration}s each  ->  ~${todo.length * duration}s of video total\n` +
   `  frames    ~${srcFrames} rendered per segment at ~${SRC_FPS}fps; build-frames keeps ${PER_CLIP} by default (--per-clip),\n` +
   `            so ~${srcFrames - PER_CLIP} frames per segment are paid for and thrown away\n` +
-  (duration > 3
-    ? `            --duration 3 still yields ~${3 * SRC_FPS + 1}, comfortably above ${PER_CLIP}\n`
-    : '') +
+  /* The --duration 3 note that used to sit here, counting frames, has moved into the cheaper-
+     ways block below, where it can carry the price as well as the frame count. Saying it twice
+     at one y/n prompt read as two different suggestions. */
   `  segments  ${todo.map(m => `${m.from}->${m.to}`).join(', ')}\n` +
   costLines.join('\n') + '\n' +
+  cheaperBlock +
   (shortOfCredit
     ? '\n!! NOT ENOUGH CREDIT for this run, per the account line above. Kling is billed segment\n' +
       '   by segment as the run proceeds, so starting anyway buys some clips and no finished\n' +
-      '   hero. Top up first, or cut this run down with --only.\n'
+      '   hero. Top up first, cut this run down with --only, or take one of the cheaper\n' +
+      '   configurations above if one is marked as fitting.\n'
     : '') +
   '\nVideo is the expensive part of this pipeline. ' +
   /* The two halves of this paragraph have to disagree, because in one case there is an estimate

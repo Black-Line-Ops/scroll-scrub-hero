@@ -1,6 +1,6 @@
 {
   "name": "scroll-scrub-hero",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "description": "Build a scroll-scrubbed hero from one or two real photos, using kie.ai for the storyboard, keyframes and tweens and ffmpeg for the frame sequence.",

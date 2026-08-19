@@ -10,6 +10,45 @@ was in the repo at that point rather than a record written as it happened. Every
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-08-19
+
+### Changed
+
+- **The video gate now prices the cheaper ways to order the same run.** `tween.mjs`'s confirmation
+  is where roughly 88% of a run's cost gets approved — five 5s pro segments are ~$2.25 of a ~$2.55
+  total, against ~$0.30 for the six stills before them — so it is the one prompt where a savings
+  hint is worth the space it takes. It now prints `--mode std`, `--duration 3` and both together,
+  each with the real figure for that segment count and the difference from what you are about to
+  approve, and says out loud that nothing has been generated yet so backing out costs nothing. The
+  reason people do not change a setting at a y/n prompt is usually that they assume answering "n"
+  wastes something.
+
+  Everything is computed by pricing.mjs for the actual run rather than copied into a comment that
+  drifts, options that are not genuinely cheaper are dropped instead of listed at a saving of
+  $0.00, and the configuration already selected is never offered back. With no pricing.mjs the
+  block does not appear at all rather than appearing empty.
+
+  The `--duration 3` line carries the reason 5s is the default: shortening a segment is also the
+  first cheap repair when a seam cuts, so a run that starts at the floor has nothing left to give.
+  A cheaper number printed without that sentence is a recommendation whatever the surrounding prose
+  says, and it would have reversed by omission a decision SKILL.md makes on purpose.
+
+  When the balance will not cover the run as configured, any alternative that *would* fit is marked
+  — which is the most useful thing on the screen for the only reader guaranteed to be reading it.
+
+- The frames-only `--duration 3` note that used to sit in the same gate has moved into that block,
+  where it can carry the price alongside the frame count. Two mentions of one flag at a single
+  prompt read as two different suggestions.
+
+### Notes
+
+- Investigated routing keyframe stills through the OpenAI Codex CLI to cut costs, and **did not
+  build it**. Stills are ~12% of a run (~$0.30 of ~$2.55), so free stills would cap the saving at
+  30 cents, while image generation on a ChatGPT plan needs a $20/month seat — break-even is about
+  67 runs a month. The Kling tween still requires kie.ai regardless, so the account, the key and
+  the balance would all remain. The levers that matter are stage count, `--mode` and `--duration`,
+  which is why they are now priced at the gate instead.
+
 ## [1.2.0] — 2026-08-19
 
 ### Added
