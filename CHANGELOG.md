@@ -10,6 +10,46 @@ was in the repo at that point rather than a record written as it happened. Every
 
 ## [Unreleased]
 
+## [1.2.2] — 2026-08-19
+
+### Fixed
+
+- **`--float` shipped with no working consumer.** 1.2.0 taught `build-frames.mjs` to key the
+  background to transparency and to write `window.<VAR>_ALPHA=true` into `config.js`. Nothing read
+  it: `references/hero-wiring.md` — the file SKILL.md sends you to for the page code — had never
+  heard of the flag, still said config.js "sets two globals", and its `paint()` was a bare
+  `drawImage` with no `clearRect` anywhere in the file. That is correct and fast for opaque frames,
+  because each one completely covers the last. A *transparent* frame covers nothing it does not
+  draw, so every previous frame stayed underneath and the subject dragged a trail of its own
+  history across the hero. Correct files, correct producer, documented consumer rendering them
+  wrong. The engine now reads the flag and clears only when it is set, so opaque builds do not pay
+  for a full-canvas write on every scroll tick.
+
+  It got through because `test/float.test.mjs` asserted that the ALPHA line reached config.js — the
+  "assert the parts exist, not the output" pattern `test/README.md` explicitly forbids — and there
+  was no output to assert against, because no consumer existed. `test/config-globals-documented.test.mjs`
+  now walks the globals out of build-frames.mjs itself and fails when hero-wiring.md does not name
+  one, so a producer and its only documented reader cannot drift apart again. The list is extracted
+  rather than hardcoded; a hardcoded one is just another copy to forget.
+
+- **SKILL.md's headline promise had become false.** It still read "Nothing generates without a
+  confirmation except the storyboard call, which is under four cents" — but the 1.2.0 no-photo path
+  makes a second Sol call and renders an image, about twelve cents, before any gate exists. The
+  scripts disclosed it on screen; the sentence summarising the whole skill did not. It now names
+  both ungated purchases and points at `--dry-run`.
+
+- **`window.<VAR>_ASPECT` was justified by a consumer that does not exist.** SKILL.md said it was
+  written "so the page can size the scrub container before a single frame has decoded"; the
+  reference engine cover-fits into whatever box the CSS gives it and hardcodes `height:600vh`. The
+  claim now says what the value is actually for.
+
+- **`doctor.mjs` checks for git.** README lists it as a requirement and nothing verified it — the
+  only listed dependency with no preflight, and the one whose absence bites during
+  `npx skills add` before doctor can run.
+
+- Stale numbers: the README badges said version 1.1.0 and 235 tests, `AGENTS.md` still described a
+  six-question interview after 1.2.0 made it eight.
+
 ## [1.2.1] — 2026-08-19
 
 ### Changed

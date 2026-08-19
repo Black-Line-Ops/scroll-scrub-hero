@@ -17,15 +17,28 @@ assets/hero-scroll/frames/
 └── clipN/…
 ```
 
-`config.js` sets two globals (the prefix is `--var`, default `HERO`):
+`config.js` sets up to four globals (the prefix is `--var`, default `HERO`):
 
 ```js
 window.HERO_EXT="webp";
+window.HERO_ASPECT="16:9";     /* whenever build-frames could read it off the footage */
+window.HERO_ALPHA=true;        /* --float builds only; absent otherwise */
 window.HERO_SEQ=[
   {"dir":"clip1","n":40,"k":"01 · Excavation","t":"We dig, frame, and reinforce for Florida soil."},
   …
 ];
 ```
+
+**`HERO_ALPHA` is not optional to handle.** `--float` frames are transparent wherever the background
+used to be, and the paint loop below is a bare `drawImage` — correct and fast for opaque frames,
+because each one completely covers the last. Composite a *transparent* frame over its predecessor
+and nothing erases the old one: the subject drags a trail of every previous position behind it. The
+engine below clears when the flag is set and skips the clear when it is not, so both kinds of build
+paint correctly out of the box.
+
+`HERO_ASPECT` is informational. This engine cover-fits into whatever box the CSS gives it, so it has
+no use for the ratio — it is there for pages that size a non-full-bleed container themselves, and to
+tell a landscape frame set from a portrait one when a build ships both.
 
 `dir` is the folder, `n` the exact frame count, `k` a short kicker, `t` the caption. Frame files
 are `frame-` plus a 4-digit 1-based index. `n` must match what's on disk exactly — the page
@@ -77,6 +90,9 @@ The engine:
    the top level silently kills every subsystem below it. */
 (function () {
 const SEQ = window.HERO_SEQ || [], EXT = window.HERO_EXT || 'webp';
+/* Set by a --float build, where the frames carry alpha. It decides one thing - whether paint()
+   erases before it draws - and getting it wrong is invisible until the subject moves. */
+const ALPHA = !!window.HERO_ALPHA;
 
 /* Derive the frame path from where config.js actually loaded from, rather than assuming the
    page sits at the site root. A hard-coded 'assets/...' resolves against the DOCUMENT, so the
@@ -120,6 +136,12 @@ function fit () {
 function paint (img) {
   if (!img || !img.complete || !img.naturalWidth) return;
   lastImg = img;
+  /* Only on alpha frames, and the asymmetry is deliberate. An opaque frame covers every pixel of
+     the last one, so clearing first is a wasted full-canvas write on every scroll tick. A
+     TRANSPARENT frame covers nothing it does not draw, so without this the previous frame stays
+     underneath and the subject smears a trail of its own history across the hero. Nothing errors
+     either way, which is why the flag exists rather than a comment telling you to remember. */
+  if (ALPHA) cx.clearRect(0, 0, cv.width, cv.height);
   const s = Math.max(cv.width / img.naturalWidth, cv.height / img.naturalHeight);
   const w = img.naturalWidth * s, h = img.naturalHeight * s;
   cx.drawImage(img, (cv.width - w) / 2, (cv.height - h) / 2, w, h);

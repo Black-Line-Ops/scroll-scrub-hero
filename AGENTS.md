@@ -11,7 +11,7 @@ Turn one photo of a real place into a scroll-scrubbed hero where the camera hold
 ## Start with the interview, not the flags
 
 The user is not expected to know what a keyframe is, what first/last-frame tweening means, or
-what `--mode pro` buys. **Part 1 of [`SKILL.md`](SKILL.md) is a six-question interview** — two
+what `--mode pro` buys. **Part 1 of [`SKILL.md`](SKILL.md) is an eight-question interview** — two
 batched rounds — that collects the decisions they actually have, phrased as outcomes and priced.
 Run it before touching a script. Never ask someone to pick a flag value.
 

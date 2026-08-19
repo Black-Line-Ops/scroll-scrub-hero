@@ -27,8 +27,14 @@ No runtime AI, no video element, no streaming — just images a canvas paints, w
 scrubs smoothly and works offline once deployed.
 
 **It spends the user's money at kie.ai.** A typical run is around **$2.55**; the levers that
-change that are in the interview below, and every one of them is priced. Nothing generates
-without a confirmation except the storyboard call, which is under four cents.
+change that are in the interview below, and every one of them is priced. The two generation
+stages — stills and video, about 98% of the bill — each stop and ask before spending anything.
+
+Two things are bought without a y/n gate, and both are named here rather than discovered on an
+invoice: the storyboard call (**under four cents**), and, on a run with no photo, the opening
+frame it is seeded from (**about five cents**, plus a second small Sol call to describe it).
+Both are printed and priced before they happen, and `--dry-run` shows the whole plan and the
+whole bill without sending anything at all.
 
 ---
 
@@ -560,8 +566,9 @@ and `--quality` that would bring it under. This costs nothing to re-run, so tune
 than shipping something heavy.
 
 It reads the **frame shape off the footage** rather than from a flag, prints it, and writes it
-into `config.js` as `window.<VAR>_ASPECT` so the page can size the scrub container before a single
-frame has decoded. Two things follow from that. `--width` picks itself when you omit it — 1600 for
+into `config.js` as `window.<VAR>_ASPECT`. The reference engine in `references/hero-wiring.md`
+cover-fits and does not need it; it is there for pages that size a non-full-bleed container
+themselves, and so a landscape frame set can be told from a portrait one when a build ships both. Two things follow from that. `--width` picks itself when you omit it — 1600 for
 landscape, 900 for portrait, because 1600 wide at 9:16 is 1600×2844, four times the pixels, aimed
 at the smallest screens you serve. And `--aspect 9:16` here is a **check, not an instruction**: it
 compares against the real footage and refuses if they disagree, which is what catches a mobile
@@ -570,7 +577,10 @@ that loads, a page that renders, and a hero that is silently the wrong one.
 
 If the storyboard was made with `--float`, this is where the knockout happens: the recorded key
 colour is read from `storyboard.json`, ffmpeg keys it to transparency in the same pass that cuts
-the frames, and `config.js` gains `window.<VAR>_ALPHA=true`. No extra dependency — no Python, no
+the frames, and `config.js` gains `window.<VAR>_ALPHA=true` — which the page **must** act on: a
+bare `drawImage` never erases, so transparent frames composite over their predecessors and the
+subject drags a trail. `references/hero-wiring.md` clears the canvas when that flag is set. No
+extra dependency — no Python, no
 segmentation model — because the frames were rendered onto a flat field on purpose. **Look at the
 first clip before trusting the rest.** Kling animates that field too and video compression leaves
 a halo of near-key pixels, so edges fray; `--float-tolerance` (0.30 by default, 0–1) is the dial

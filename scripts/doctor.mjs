@@ -35,6 +35,21 @@ if (major >= 18) ok(`Node ${process.versions.node}`)
 else problems += bad(`Node ${process.versions.node} is too old (need 18+ for built-in fetch)`,
   'Install a current Node from nodejs.org, then reopen your terminal.')
 
+/* --- git ---
+   README.md lists it as a requirement and nothing checked for it, which made it the one dependency
+   whose absence is invisible here. It is also the only one that bites BEFORE this script can run:
+   `npx skills add Black-Line-Ops/scroll-scrub-hero` clones, so a machine without git fails at the
+   install step with a message about a clone rather than about git. Reported as a NOTE rather than
+   counted as a problem - if you are reading this output the install already worked, so the value
+   is for the next machine, or for someone who copied the folder across by hand. */
+try {
+  const v = execFileSync('git', ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+  ok(v.slice(0, 60))
+} catch (_) {
+  note('git is not on PATH - this install worked, but `npx skills add` needs it to clone',
+    'Windows: winget install --id Git.Git   macOS: xcode-select --install   Linux: your package manager')
+}
+
 /* --- where this skill actually lives ---
 
    Every command in SKILL.md, README.md and AGENTS.md is written as `"$SKILL/scripts/..."`, and
