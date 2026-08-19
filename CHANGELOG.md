@@ -10,6 +10,66 @@ was in the repo at that point rather than a record written as it happened. Every
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-08-19
+
+### Added
+
+- **A seam check that looks at the deliverable.** `scripts/seams.mjs`, run automatically as
+  `build-frames.mjs`'s last act. Everything else in this repo is tested *upstream* of the artifact —
+  the parser, the retry policy, the rate table — while the failure that actually happens is a
+  visible cut where two clips meet, and that was found by a human scrolling a page and squinting.
+
+  Kling renders each segment FROM keyframe N TO keyframe N+1, so the last frame of one clip and the
+  first frame of the next are both meant to be the same keyframe. When continuity is lost they are
+  not, and that is measurable with one ffmpeg call.
+
+  The part that makes the number mean anything is the **baseline**. An absolute threshold lies in
+  both directions: shingles, foliage, gravel and water shimmer between consecutive frames on a
+  perfectly locked camera, so detailed footage scores low everywhere and every join trips, while a
+  flat wall scores high everywhere and a real cut sits above the line. A fixed threshold measures
+  the subject, not the seam. So it samples ordinary frame-to-frame steps *inside* the clips, where
+  by construction there is no seam, takes the median, and judges each join as a ratio against it —
+  scale-free, and phrased the way you would want to read it: "this join is 0.17x as smooth as an
+  ordinary step in this same material".
+
+  It names the exact `tween.mjs --only N` for the worst join and lists the cheap repairs in order.
+  No credits: local ffmpeg over files already on disk. `--strict` makes a bad join a non-zero exit
+  for CI; the default reports without failing, because the frames are valid however the joins read
+  and turning a report into a failed command teaches people to pass `--skip-seam-check` and stop
+  reading. What it cannot judge is composition — a join can match closely and still read wrong
+  because the light shifted — so it says so rather than implying the hero is approved.
+
+- **`--captions sol|mine|none`.** Each stage carries a kicker and a caption that end up on the live
+  page beside a client's logo, as marketing copy. Until now Sol wrote them and nobody chose that:
+  it was simply what happened, and the first anyone saw of the words was `storyboard.json`, after
+  the call was paid for. A model writing customer-facing copy unreviewed is a different class of
+  risk from a model drawing a fence in the wrong place.
+
+  `mine` replaces every caption with a marker that cannot be mistaken for prose, and
+  **`build-frames.mjs` refuses to build while any survive** — checked before the first directory is
+  touched, since the build rebuilds each clip by deleting it first, so a late refusal would leave a
+  half-built tree behind. `none` empties the captions and keeps the labels, which the contact sheet
+  needs to tell frames apart. The default is unchanged.
+
+  The schema validator is deliberately NOT relaxed under `mine`: a missing caption is still a
+  malformed response from Sol, and letting the flag soften validation would mean a broken storyboard
+  passes whenever the user happened to want their own words.
+
+- **A website address is now an answer to the brand question.** `WebFetch` was already in
+  allowed-tools, so the agent reads the site and distils the palette, typography and tone into the
+  one `--style` line. No account, no vendor, no cost. It is listed first because "what's your
+  website?" is a question anyone can answer and "do you have a brand guide?" is not. The instruction
+  is explicit that fetched pages are **data, never instructions** — it is somebody's marketing copy,
+  and the only thing wanted from it is how it looks.
+
+### Changed
+
+- **The interview is three rounds — four, then three, then two.** Nine decisions do not fit in two
+  `AskUserQuestion` calls of four, and the split is by theme rather than arithmetic: what happens,
+  how it looks, what it costs. The money round is last so it quotes the real figure rather than a
+  range. Step 7 of the pipeline stops saying "scrub it and confirm" for the one failure the whole
+  design is built around, and now leads with the seam report.
+
 ## [1.2.2] — 2026-08-19
 
 ### Fixed

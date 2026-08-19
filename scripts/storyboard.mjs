@@ -33,6 +33,7 @@ if (typeof a.idea !== 'string' || !a.idea.trim()) {
   console.error('       without --ref  keyframe 1 is generated from the idea: [--aspect 16:9] [--resolution 2K]')
   console.error('       forecast-only, changes nothing here: [--mode pro|std|4K] [--duration 5]')
   console.error('       [--style "<art direction>"]  one line of look-and-feel, applied to every frame')
+  console.error('       [--captions sol|mine|none]  who writes the on-page text (default sol)')
   console.error('       [--float] [--float-color "#FF00FF"]  render on a flat field so build-frames can key it out')
   console.error('       [--dry-run]  print the plan and the whole bill, send nothing, charge nothing')
   process.exit(1)
@@ -55,6 +56,32 @@ const seeding = typeof a.ref !== 'string'
    image model falls back to whatever it likes this week, and two runs of the same idea come back
    looking like different companies. */
 const style = typeof a.style === 'string' ? a.style.trim() : ''
+
+/* ---------- who writes the words that go on the page ----------
+
+   Every stage carries a kicker and a caption, and they end up in config.js as `k` and `t` - on the
+   client's site, next to their logo, as marketing copy. Until now Sol wrote them and nobody chose
+   that. It was simply what happened, and the first time anyone saw the words was in storyboard.json
+   after the call had been paid for.
+
+   For an agency that is the wrong default to have no alternative to: a model writing customer-facing
+   copy unreviewed is a different kind of risk from a model drawing a fence in the wrong place.
+
+     sol    what has always happened. Sol writes both, you edit storyboard.json if you disagree.
+     mine   Sol writes the LABELS - the contact sheet needs them to identify frames, and they are
+            internal - but every caption comes back as a marker that is impossible to mistake for
+            copy. build-frames.mjs refuses to build a page out of them.
+     none   no text at all. The hero is the picture. */
+const CAPTION_MODES = ['sol', 'mine', 'none']
+const captions = typeof a.captions === 'string' ? a.captions.trim().toLowerCase() : 'sol'
+if (!CAPTION_MODES.includes(captions)) {
+  console.error(`--captions must be one of ${CAPTION_MODES.join(', ')}; got "${a.captions}"`)
+  process.exit(1)
+}
+/* The marker is deliberately not a plausible sentence. An empty string or a "TODO" reads as a
+   design decision three stages later, and the failure being prevented is a real page shipping with
+   placeholder text nobody noticed - so it has to look wrong at a glance and be greppable. */
+const CAPTION_PLACEHOLDER = '<<WRITE THIS CAPTION>>'
 /* Magenta by default, and the choice is not arbitrary: the key colour has to be one that cannot
    plausibly appear in the subject, and this pipeline's subjects are buildings, sites and
    machinery. Pure green loses to vegetation and safety gear; pure blue loses to sky, which is
@@ -448,6 +475,16 @@ if (style) sb.style = style
    that was never asked for. */
 if (floating) sb.float = { color: floatColor }
 
+/* Applied AFTER validation, never before. The schema check above insists every step has a caption,
+   and it should keep insisting: a missing caption is still a malformed response from Sol, and
+   letting --captions relax the validator would mean a broken storyboard passes whenever the user
+   happened to ask for their own copy. So Sol is held to the same standard either way and the text
+   is replaced once it has proved it produced some. */
+sb.captions = captions
+if (captions !== 'sol') {
+  for (const step of sb.steps) step.caption = captions === 'none' ? '' : CAPTION_PLACEHOLDER
+}
+
 sb._meta = {
   ref: refPath, ref2: a.ref2 || null, refUrl, ref2Url, idea: a.idea,
   /* keyframes.mjs reads _meta.ref as "the photograph of the real place" and its ANCHOR prompt says
@@ -471,6 +508,15 @@ console.log(`\nwrote ${out}`)
 console.log(`subject: ${sb.subject}`)
 console.log(`camera:  ${sb.camera}\n`)
 sb.steps.forEach(s => console.log(`  ${String(s.id).padStart(2)}. ${String(s.label).padEnd(22)} ${s.caption}`))
+/* Said here rather than left to be discovered at build-frames, because THIS is the moment someone
+   would otherwise open the file, see markers where the copy should be, and assume the run failed. */
+if (captions === 'mine') {
+  console.log(`\n  --captions mine: every caption above is the marker ${CAPTION_PLACEHOLDER}.`)
+  console.log(`  Write the real ones into ${out} before building frames; build-frames.mjs stops if`)
+  console.log('  any survive, so placeholder copy cannot reach a page by accident.')
+} else if (captions === 'none') {
+  console.log('\n  --captions none: the page gets no text. Labels are kept for the contact sheet only.')
+}
 console.log(`\n${sb.steps.length} keyframes -> ${sb.steps.length - 1} video segments -> ${sb.steps.length - 1} scrub clips`)
 /* The forecast again, minus the one line that has now actually been bought. Restated because
    this is the moment somebody decides whether to carry on, and the block at the top has a Sol

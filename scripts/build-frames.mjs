@@ -6,16 +6,23 @@ import os from 'node:os'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { state, args } from './kie.mjs'
+
+/* This script's own directory, so it can invoke its sibling seams.mjs by absolute path. These
+   scripts are always run from a scratch directory somewhere else, so a relative path would resolve
+   against the user's cwd and miss. Same shape keyframes.mjs and tween.mjs already use. */
+const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 /* --allow-gaps carries no value, so the shared parser has to be told about it. An undeclared
    value-less flag at the end of argv is rejected as "--allow-gaps needs a value". */
-const a = args(process.argv.slice(2), { booleans: ['allow-gaps'] })
+const a = args(process.argv.slice(2), { booleans: ['allow-gaps', 'float', 'skip-seam-check'] })
 if (!a.segments || !a.storyboard || !a.out) {
   console.error('usage: node build-frames.mjs --segments segments/ --storyboard storyboard.json --out <site>/assets/hero-scroll/frames/\n' +
     '                          [--width <px>] [--aspect 16:9] [--per-clip 40] [--quality 78] [--budget-mb 35] [--var HERO] [--allow-gaps]\n' +
     '                          omit --width and it follows the frame shape: 1600 landscape, 900 portrait\n' +
-    '                          [--float] [--float-color "#FF00FF"] [--float-tolerance 0.30]  key the flat background to transparent\n\n' +
+    '                          [--float] [--float-color "#FF00FF"] [--float-tolerance 0.30]  key the flat background to transparent\n' +
+    '                          [--skip-seam-check]  build without measuring the joins afterwards\n\n' +
     '  --allow-gaps  build from whatever clips exist instead of stopping when the storyboard\n' +
     '                describes segments that have no video. For the bring-your-own-clips path.')
   process.exit(1)
@@ -218,6 +225,30 @@ for (const seg of segments) {
       console.log('     the same motion will play twice. Placeholder footage, or a stale file from a resumed run?')
     } else seen.set(h, s.file)
   }
+}
+
+/* ---------- placeholder captions must not reach a page ----------
+
+   `--captions mine` fills every caption with a marker for the user to replace. Everything between
+   there and here treats a caption as an opaque string, so a marker travels the whole pipeline
+   without a single complaint and lands in config.js as `t` - on the client's live site.
+
+   Checked BEFORE the first directory is touched, because the loop below rebuilds each clip by
+   deleting it first: refusing after that point would leave a half-built tree behind while the
+   previous run's config.js still described the old one. Refusing here changes nothing on disk.
+
+   The marker is matched rather than compared, so hand-editing half of them still fails until the
+   last one is written - which is the realistic mistake, not forgetting all of them. */
+const PLACEHOLDER = '<<WRITE THIS CAPTION>>'
+const unwritten = (Array.isArray(sb.steps) ? sb.steps : [])
+  .filter(s => typeof s?.caption === 'string' && s.caption.includes(PLACEHOLDER))
+if (unwritten.length) {
+  console.error(`\n  !! ${unwritten.length} caption(s) are still the placeholder from --captions mine:`)
+  for (const s of unwritten) console.error(`     step ${s.id}  ${s.label}`)
+  console.error(`\n     Write them into ${path.resolve(a.storyboard)} - the "caption" field on each step -`)
+  console.error('     then re-run this command. Nothing has been built, and nothing was billed.')
+  console.error('     If you meant to ship without any text, re-make the storyboard with --captions none.')
+  process.exit(1)
 }
 
 fs.mkdirSync(outDir, { recursive: true })
@@ -436,3 +467,25 @@ if (mb > budgetMb) {
   console.log(`within the ${budgetMb} MB budget.`)
 }
 console.log('\nIf the page already reads this config, reload and scrub it. Otherwise see references/hero-wiring.md.')
+
+/* Measure the joins, here, by default.
+
+   A check nobody runs is not a check. Everything else in this repo is tested UPSTREAM of the
+   artifact - the parser, the retry policy, the rate table - while the thing that actually goes
+   wrong is a visible cut where two clips meet, and that was found by a human scrolling a page and
+   squinting. This is local ffmpeg over files already on disk: no credits, a couple of seconds, so
+   the default is to look.
+
+   Its exit code is deliberately NOT adopted. The frames are built and valid however the joins
+   read, and a seam is a judgement about generated video rather than a build error; turning a
+   report into a failed command teaches people to pass --skip-seam-check and stop reading. */
+if (!a['skip-seam-check']) {
+  try {
+    execFileSync(process.execPath, [path.join(HERE, 'seams.mjs'), '--frames', outDir], { stdio: 'inherit' })
+  } catch (e) {
+    /* Named, not swallowed. A seam check that quietly did not run reads exactly like one that ran
+       and found nothing, which is the worse of the two failures. */
+    console.log(`\n(seam check did not run: ${String((e && e.message) || e).split('\n')[0]})`)
+    console.log(`  run it yourself: node "${path.join(HERE, 'seams.mjs')}" --frames "${outDir}"`)
+  }
+}
