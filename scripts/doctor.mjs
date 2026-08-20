@@ -163,6 +163,7 @@ if (haveFfmpeg) {
    credential, and saying so is more useful than showing it. */
 const mask = (k) => k.length <= 12 ? '(too short - looks like a truncated paste)' : `${k.slice(0, 4)}…`
 
+let keyRejected = false
 if (process.env.KIE_API_KEY) {
   const k = process.env.KIE_API_KEY
   ok(`KIE_API_KEY is set (${mask(k)}, ${k.length} chars)`)
@@ -187,6 +188,7 @@ if (process.env.KIE_API_KEY) {
     const bodyCode = body && body.code !== undefined ? String(body.code) : null
     const authFailed = res.status === 401 || bodyCode === '401' || bodyCode === '403'
     if (authFailed) {
+      keyRejected = true
       problems += bad(`kie.ai rejected the key (HTTP ${res.status}, body code ${bodyCode ?? 'none'}${body.msg ? ' - ' + body.msg : ''})`,
         'Check for a stray space or quote, and that the key is still active at kie.ai -> API keys.')
     } else if (bodyCode && !['200', '404', '422'].includes(bodyCode)) {
@@ -426,17 +428,18 @@ if (!problems) {
   console.log(`  ${RUN} --idea "empty lot to finished house" --steps 6\n`)
 } else {
   console.log(`${problems} thing(s) to fix before running the pipeline.\n`)
-  if (!process.env.KIE_API_KEY) {
+  if (!process.env.KIE_API_KEY || keyRejected) {
     console.log('Setting your key')
-    console.log('  Get one at kie.ai -> API keys (you need credits on the account).\n')
+    console.log('  Get one at kie.ai -> API keys (you need credits on the account).')
+    console.log('  It is a bare string with no prefix - there is no "sk-" on a kie.ai key.\n')
     console.log('  Windows PowerShell, just this terminal:')
-    console.log('    $env:KIE_API_KEY = "sk-your-key"\n')
+    console.log('    $env:KIE_API_KEY = "paste-your-key-here"\n')
     console.log('  Windows PowerShell, permanently (reopen the terminal afterwards):')
-    console.log('    [Environment]::SetEnvironmentVariable("KIE_API_KEY","sk-your-key","User")\n')
+    console.log('    [Environment]::SetEnvironmentVariable("KIE_API_KEY","paste-your-key-here","User")\n')
     console.log('  macOS / Linux / Git Bash, just this shell:')
-    console.log('    export KIE_API_KEY="sk-your-key"\n')
+    console.log('    export KIE_API_KEY="paste-your-key-here"\n')
     console.log('  macOS / Linux, permanently:')
-    console.log('    echo \'export KIE_API_KEY="sk-your-key"\' >> ~/.zshrc   # or ~/.bashrc\n')
+    console.log('    echo \'export KIE_API_KEY="paste-your-key-here"\' >> ~/.zshrc   # or ~/.bashrc\n')
     console.log('  Keep it out of any repo. These scripts only ever read it from the environment.')
   }
 }
