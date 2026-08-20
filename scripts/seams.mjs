@@ -43,7 +43,12 @@ if (!fs.existsSync(framesDir)) { console.error(`no such directory: ${framesDir}`
 
 /* Per clip, not in total. Five pairs from each clip is enough to find the median of a distribution
    this tight, and keeps a ten-clip hero to about sixty ffmpeg calls - a couple of seconds. */
-const SAMPLES = Number.isFinite(a.samples) && a.samples > 0 ? Math.floor(a.samples) : 5
+/* parseInt, not Number.isFinite. args() deliberately hands flag values over as STRINGS (see its
+   header), and `Number.isFinite("7")` is false - so the guard this used to have rejected every
+   value a user could actually pass and --samples silently stayed at 5 on every run. A flag that
+   does nothing has no symptom, which is why it went unnoticed. */
+const asked = parseInt(a.samples, 10)
+const SAMPLES = Number.isInteger(asked) && asked > 0 ? asked : 5
 
 /* Ratios, not SSIM values, because the whole point is that the raw number means nothing without the
    footage it came from. 0.85 and 0.60 are judgement calls and are printed as such: what earns its
