@@ -11,6 +11,7 @@
      5. The file upload endpoint is not on the same host as everything else - see UPLOAD_BASE. */
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 
 const BASE = 'https://api.kie.ai'
 
@@ -202,6 +203,15 @@ export async function uploadFile (filePath) {
   }
   const [mime, ext] = sniffMime(buf, filePath)
   const base = path.basename(filePath, path.extname(filePath))
+  /* The upload host keys files by ACCOUNT + FILENAME and silently overwrites. Proven the
+     expensive way in the sibling scroll-flight: three concurrent runs each uploaded a
+     "scene-01.png", all three recorded the SAME URL, and a clip in one world rendered pinned to
+     a frame from another. A recorded URL is a mutable pointer, not a blob.
+
+     The name therefore carries a hash of the CONTENT. Same bytes -> same name -> an overwrite
+     is a no-op by definition; different bytes -> different name -> cannot collide. This is the
+     whole of what makes concurrent runs on one account safe. */
+  const digest = crypto.createHash('sha1').update(buf).digest('hex').slice(0, 10)
   /* UPLOAD_BASE, not BASE - see the constant. This is the one route on the other host. */
   const body = await req(`${UPLOAD_BASE}/api/file-base64-upload`, {
     method: 'POST',
@@ -209,7 +219,7 @@ export async function uploadFile (filePath) {
     body: JSON.stringify({
       base64Data: `data:${mime};base64,${buf.toString('base64')}`,
       uploadPath: 'images',
-      fileName: `${base}.${ext}`,
+      fileName: `${digest}-${base}.${ext}`,
     }),
     /* Two attempts, not five: `opts` is built once and reused, so every retry re-sends the whole
        multi-megabyte body. Upload is free, but five blind attempts is a minute of nothing. */

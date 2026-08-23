@@ -80,7 +80,13 @@ test('the sniffed type and the sniffed extension always agree', async (t) => {
       assert.equal(r.calls.length, 1)
       assert.equal(r.calls[0].url, UPLOAD_URL,
         'the base64 upload route does not exist on api.kie.ai - see UPLOAD_BASE in kie.mjs')
-      assert.equal(r.calls[0].body.fileName, fileName)
+      /* The name now carries a 10-hex content digest so the upload host - which keys files by
+         account+filename and silently OVERWRITES - cannot cross-contaminate concurrent runs;
+         see upload-name.test.mjs. The sniff contract is unchanged: after the digest, the name
+         and extension must still come from the sniffed bytes, never the file's own claim. */
+      assert.match(r.calls[0].body.fileName, /^[0-9a-f]{10}-/,
+        'the content-digest prefix is what stops concurrent runs overwriting each other')
+      assert.equal(r.calls[0].body.fileName.slice(11), fileName)
       assert.ok(r.calls[0].body.base64Data.startsWith(`data:${mime};base64,`),
         `declared ${r.calls[0].body.base64Data.slice(0, 40)}, expected data:${mime}`)
       /* The declared type and the declared name must not be able to disagree. */
