@@ -1,18 +1,16 @@
 ---
 name: scroll-scrub-hero
 description: >
-  Build a scroll-scrubbed hero from one or two REAL photos plus an idea — or from the idea alone,
-  with no photo at all. The kind where scrolling drives a subject through a transformation (bare
-  yard → finished pool, empty room → staged interior, raw stock → machined part, before → after).
-  Uses kie.ai: GPT 5.6 Sol writes the storyboard from the photo, GPT Image 2 renders the keyframe
-  stills so the client's ACTUAL property stays recognisable — and draws the opening frame too when
-  there is no photograph to start from — Kling 3.0 first/last-frame tweens the motion between them,
-  and ffmpeg cuts the result into drop-in scrub frames plus config.js. Use this whenever someone
-  wants a scroll-driven build/progress/before-after hero, mentions scrubbing video on scroll, asks
-  to "animate" a client photo into a hero, wants Kling or kie.ai wired into a site, wants to turn
-  project photos into a scrolling story, or wants a scroll hero for something that does not exist
-  yet — even if they don't say "scroll scrub". Suits a fixed camera with a subject that changes
-  state; not a camera flying through a scene.
+  Build a scroll-scrubbed hero from one or two REAL photos plus an idea — or from the idea alone.
+  Scrolling drives a subject through a transformation (bare yard → finished pool, empty room →
+  staged interior, raw stock → machined part, before → after). Uses kie.ai: GPT 5.6 Sol writes
+  the storyboard, GPT Image 2 renders keyframe stills so the client's ACTUAL property stays
+  recognisable (and draws the opening frame when there is no photo), Kling 3.0 first/last-frame
+  tweens the motion, and ffmpeg cuts drop-in scrub frames plus config.js. Use whenever someone
+  wants a scroll-driven build/progress/before-after hero, mentions scrubbing video on scroll,
+  asks to "animate" a client photo, wants Kling or kie.ai wired into a site, or wants project
+  photos turned into a scrolling story — even if they never say "scroll scrub". Suits a fixed
+  camera with a subject that changes state; not a camera flying through a scene.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebFetch
 ---
 
