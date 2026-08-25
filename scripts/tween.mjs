@@ -302,7 +302,20 @@ for (const m of todo) {
     continue
   }
 
-  const prompt = String(m.prompt || '').slice(0, 500)   /* Kling caps single-shot prompts at 500 */
+  /* The camera lock is the one rule everything descends from (references/prompting.md), so the
+     pipeline appends it rather than trusting each motion's tail - and budgets it FIRST: on an
+     overlong motion the MOTION gives way, never the lock. Ported from the sibling flight
+     pipeline, where this exact class of silent tail-truncation shipped real instability: the
+     lock used to live at the END of the motion text, which is the first thing a silent
+     .slice(0, 500) eats. A trailing hand-written lock is stripped so the characters are not
+     spent twice. */
+  const CAMERA_LOCK = ' Camera locked, no pan, no zoom, no cut. No text, no signage, no captions.'
+  const rawMotion = String(m.prompt || '').replace(/\s*Camera locked[^.]*\.?\s*$/i, '')
+  const motionBudget = 500 - CAMERA_LOCK.length
+  if (rawMotion.length > motionBudget) {
+    console.log(`  !! motion prompt is ${rawMotion.length} chars and will be cut to ${motionBudget} - the tail of this motion is being dropped`)
+  }
+  const prompt = rawMotion.slice(0, motionBudget) + CAMERA_LOCK
   console.log(`\nsegment ${m.from}->${m.to}: ${prompt.slice(0, 90)}${prompt.length > 90 ? '...' : ''}`)
 
   let taskId

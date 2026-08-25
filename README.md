@@ -37,7 +37,7 @@ Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 [![Version](https://img.shields.io/badge/version-1.3.0-2563EB?style=for-the-badge)](CHANGELOG.md)
 [![Node](https://img.shields.io/badge/node-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-zero-0891B2?style=for-the-badge)](#what-you-need)
-[![Tests](https://img.shields.io/badge/tests-290%20passing-D946EF?style=for-the-badge)](test/)
+[![Tests](https://img.shields.io/badge/tests-315%20passing-D946EF?style=for-the-badge)](test/)
 [![Powered by kie.ai](https://img.shields.io/badge/powered%20by-kie.ai-2563EB?style=for-the-badge)](https://kie.ai?ref=da271de69b92c3461d59a15884817078)
 
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square)](#installing-it)

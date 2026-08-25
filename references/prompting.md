@@ -48,11 +48,14 @@ Strong — one process, concrete:
 > An excavator digs the pool shape out of the lawn. Soil lifts away in stages and piles at the
 > left. The hole deepens steadily to its finished depth. Camera locked, no pan or zoom.
 
-Keep them under 500 characters — Kling rejects longer in single-shot mode, and `tween.mjs`
-truncates rather than letting the call fail.
-
-Ending with "camera locked, no pan or zoom" is worth the characters. The model otherwise adds
-gentle drift, which reads as instability once frames are scrubbed under user control.
+The pipeline now appends the lock itself: `tween.mjs` adds "Camera locked, no pan, no zoom,
+no cut. No text, no signage, no captions." to every segment, budgeted FIRST — on an overlong
+motion it is the motion's own tail that gives way, never the lock, and the truncation is
+announced rather than silent. A hand-written trailing lock is stripped so the characters are
+not spent twice. (Ported from the sibling flight pipeline, where the lock living at the END of
+hand-written text — the first thing a silent 500-character slice eats — shipped real drift.)
+That leaves the motion itself about 425 characters; going over now costs your own ending, so
+keep motions tight.
 
 ## Sequencing
 
@@ -92,6 +95,39 @@ back to the real property.
 If drift is systemic rather than one frame, the reference photo may be doing too little work —
 a tight crop of a lawn gives the model very little to hold onto. A wider shot with buildings,
 fences and a horizon anchors far better.
+
+## The keep-object lock
+
+For the objects that must SURVIVE the transformation (the house behind the new pool, the
+machine bed around the new part), a naming list is good and a lock is better — five moves,
+ported from a sibling-pipeline hero-object study whose first takes warped the one object that
+mattered most:
+
+1. Name each keep-object's EXISTING position before describing any change.
+2. Repeat its material, shape and parts ("the white clapboard house with the grey shingle
+   roof"), not just its noun.
+3. State that it changes only by light and shadow — never by shape, colour or position.
+4. Ban the specific failures already seen ("do not redecorate the house, move the fence line,
+   or regrow the hedge").
+5. Constrain the END state's composition so the keep-objects stay readable in the final
+   keyframe.
+
+## Verify motion, not just seams
+
+`seams.mjs` checks the joins; it cannot see inside a segment. After any regenerated segment,
+sample it at 0/25/50/75/99% and LOOK: a real transformation EVOLVES through the middle frames —
+soil half-removed, walls half-formed. A faked one holds the start state and pops to the end
+state near a join, and the seam check passes it because the endpoints are exactly right. The
+five-frame strip costs a minute and catches the failure the numbers cannot.
+
+## Ops gotchas worth knowing (from the sibling pipeline; several first documented by oso95/scroll-world)
+
+Video content filters false-positive on innocuous words this skill uses constantly — pool,
+spa, bedroom, swim, wine. The filter is non-deterministic, so a flagged segment usually passes
+on a plain re-roll; stripping the trigger word or adding "empty, unoccupied, architectural"
+settles a stubborn one. Concurrent generations can 503 or claim insufficient credits in a
+race — re-roll the individual failure before believing the balance. And scroll is a scrubber:
+every seam also plays BACKWARD under the visitor's finger, so judge joins in both directions.
 
 ## Adapting to other subjects
 
