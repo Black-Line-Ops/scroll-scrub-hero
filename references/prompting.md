@@ -106,3 +106,30 @@ subject that changes state:
 What does *not* fit: anything where the camera should travel through space. A first/last-frame
 chain has no way to hold a moving camera coherent across a seam, so that needs a different
 technique — a continuously rendered camera path rather than stitched tweens.
+
+
+## A brand mark when the client has none
+
+The demo pages needed six site logos; GPT Image produced all six as accepted-on-first-try marks
+from one strict template. Use it whenever a user wants a mark generated instead of supplying one:
+
+> A minimal flat vector logo mark: [ONE OBJECT METAPHOR from the brand's world, described in a
+> sentence - a discrete THING, not an area or a mood: a dovetail joint, a shipping container on
+> a crane hook, a dinner plate whose rim becomes a wave]. One solid color only: [ONE BRAND HEX].
+> [One personality clause: "uniform thin line weight, elegant" / "chunky rounded shapes,
+> playful" / "bold straight lines, industrial stencil"]. No gradients, no shading, no text, no
+> letters. Centered on a fully transparent background, square canvas, generous empty margin
+> around the mark. PNG with transparency.
+
+What made all six land, kept short:
+
+- The metaphor is a THING - the same law as the camera focals: name a thing, not an area.
+  Fusing TWO things from the brand's world reads as designed rather than generated: bean+leaf,
+  plate+wave, leaf+topographic contour lines, house+horizon line.
+- ONE hex, taken from the same palette the page already uses - the mark then sits in the
+  chrome without introduction.
+- Text is banned INSIDE the mark; the wordmark next to it is live HTML.
+- Ask for 2048x2048 when a size is offered; marks downscale clean. Wire at 24-28px beside the
+  name - if it does not read at that size, simplify the METAPHOR, not the style.
+- If a result draws a checkerboard pattern instead of real alpha, reply: "the background must
+  be actual alpha transparency, not a drawn checkerboard pattern" - it regenerates properly.
