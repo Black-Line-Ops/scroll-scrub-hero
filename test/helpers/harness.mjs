@@ -39,7 +39,11 @@ process.on('exit', () => {
 })
 
 export function tmpDir (label = 'ssh-test-') {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), label))
+  /* realpath: on macOS os.tmpdir() is /var/folders/..., a symlink to /private/var/folders/...,
+     and a staged script derives its own location from import.meta.url, which resolves the link -
+     so any assertion comparing a script's printed location to its staging directory failed on
+     macOS and nowhere else. Found by CI's first macOS run in the sibling scroll-flight. */
+  const d = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), label)))
   made.push(d)
   return d
 }

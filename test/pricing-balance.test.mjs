@@ -102,8 +102,20 @@ test('a lookup that never answers gives up on its own deadline', async () => {
   const hangs = (url, opts) => new Promise((_, reject) => {
     opts.signal.addEventListener('abort', () => reject(opts.signal.reason || new Error('aborted')))
   })
+  /* AbortSignal.timeout's timer is unref'd by design, so while this stub hangs NOTHING keeps
+     the event loop alive: on Node 18-22 the process drains, the runner exits, and every test
+     after this one is "cancelledByParent" - 85 of them on the first CI run, on every OS. A real
+     fetch holds a socket, so production never sees this; the stub has to hold the loop itself.
+     Node 24 happened to keep it alive, which is why the suite was green on the machine that
+     wrote it and red everywhere else. */
+  const keepAlive = setTimeout(() => {}, 5000)
   const started = Date.now()
-  const bal = await fetchBalance({ apiKey: KEY, fetchImpl: hangs, timeoutMs: 120, rates: R() })
+  let bal
+  try {
+    bal = await fetchBalance({ apiKey: KEY, fetchImpl: hangs, timeoutMs: 120, rates: R() })
+  } finally {
+    clearTimeout(keepAlive)
+  }
   const waited = Date.now() - started
 
   assert.equal(bal.known, false)

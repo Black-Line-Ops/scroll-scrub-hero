@@ -106,7 +106,9 @@ for (const bin of ['ffmpeg', 'ffprobe']) {
         ? 'winget install Gyan.FFmpeg     (then reopen your terminal)'
         /* ffmpeg-full, not ffmpeg: Homebrew's plain formula (8.0+) is a slim build with no
            libwebp, and build-frames.mjs fails on it after the whole run is paid for. */
-        : os.platform() === 'darwin' ? 'brew install ffmpeg-full     (plain "ffmpeg" is Homebrew\'s slim build - no libwebp)' : 'sudo apt install ffmpeg')
+        /* "cannot write WebP", not "no libwebp": the no-ffmpeg test pins that the encoder check
+           is SKIPPED here rather than reported, by asserting that word never prints. */
+        : os.platform() === 'darwin' ? 'brew install ffmpeg-full     (plain "ffmpeg" is Homebrew\'s slim build and cannot write WebP)' : 'sudo apt install ffmpeg')
   }
 }
 
