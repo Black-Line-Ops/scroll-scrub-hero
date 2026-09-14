@@ -34,10 +34,11 @@ Measurements and case studies in <a href="examples/">examples/</a>.</sub>
 <br>
 
 [![Licence](https://img.shields.io/badge/licence-MIT-EF4444?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.0-2563EB?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.1-2563EB?style=for-the-badge)](CHANGELOG.md)
 [![Node](https://img.shields.io/badge/node-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-zero-0891B2?style=for-the-badge)](#what-you-need)
-[![Tests](https://img.shields.io/badge/tests-315%20passing-D946EF?style=for-the-badge)](test/)
+[![Tests](https://img.shields.io/badge/tests-323%20passing-D946EF?style=for-the-badge)](test/)
+[![CI](https://github.com/Black-Line-Ops/scroll-scrub-hero/actions/workflows/tests.yml/badge.svg)](https://github.com/Black-Line-Ops/scroll-scrub-hero/actions/workflows/tests.yml)
 [![Powered by kie.ai](https://img.shields.io/badge/powered%20by-kie.ai-2563EB?style=for-the-badge)](https://kie.ai?ref=da271de69b92c3461d59a15884817078)
 
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square)](#installing-it)
@@ -103,7 +104,7 @@ Ask whether the camera moves.
 | [`references/`](references) | [prompting](references/prompting.md), [page wiring](references/hero-wiring.md), [the kie.ai contract and cost model](references/kie-api.md) |
 | [`examples/`](examples) | four real client builds, measured — frame counts, weights, what went wrong |
 | [`scripts/seams.mjs`](scripts/seams.mjs) | measures every join and names the segment to re-run |
-| [`test/`](test) | 290 tests, no network, nothing billable |
+| [`test/`](test) | 323 tests, no network, nothing billable — run on Linux, macOS and Windows with a real ffmpeg on every push |
 | [`docs/how-it-works.md`](docs/how-it-works.md) | why the frames approach beats seeking a video |
 
 ## 📦 Installing it
@@ -178,7 +179,7 @@ the skill.
 |---|---|
 | **Node 18+** | for the scripts (`node --version`) |
 | **Git** | the skills CLI clones this repo to install it (`git --version`) |
-| **ffmpeg + ffprobe** | for cutting frames — `winget install Gyan.FFmpeg`, `brew install ffmpeg`, or `apt install ffmpeg` |
+| **ffmpeg + ffprobe** | for cutting frames — `winget install Gyan.FFmpeg`, `brew install ffmpeg-full` (Homebrew's plain `ffmpeg` is a slim build with no WebP encoder), or `apt install ffmpeg` |
 | **A kie.ai account with credits** | this is where the models run — **[sign up](https://kie.ai?ref=da271de69b92c3461d59a15884817078)** |
 
 No npm install. Every import is a Node builtin.

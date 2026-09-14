@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { state, args } from './kie.mjs'
+import { webpEncodeArgs } from './ffmpeg-flags.mjs'
 
 /* This script's own directory, so it can invoke its sibling seams.mjs by absolute path. These
    scripts are always run from a scratch directory somewhere else, so a relative path would resolve
@@ -354,10 +355,12 @@ for (const seg of segments) {
 
   console.log(`clip${chapter}  <- ${path.basename(seg.file)}  ${dur.toFixed(2)}s -> ${perClip} frames @ ${width}px`)
   try {
+    /* The encode flags come from ffmpeg-flags.mjs, chosen from the ffmpeg on PATH: `-vsync` was
+       removed in ffmpeg 9 and `-fps_mode` does not exist before 5.1, and this is step 4 of 4 - a
+       wrong flag here fails after every tween is paid for. doctor.mjs trial-runs the same list. */
     ff(['-i', seg.file,
       '-vf', `fps=${fps},scale=${width}:-2:flags=lanczos${floatFilter}`,
-      '-vsync', '0',
-      '-c:v', 'libwebp', '-quality', String(quality), '-preset', 'picture',
+      ...webpEncodeArgs(quality),
       path.join(dir, 'frame-%04d.webp')])
   } catch (e) {
     /* Without this the missing-libwebp case - the first cause named by the zero-frame guard

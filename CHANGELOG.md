@@ -10,6 +10,32 @@ was in the repo at that point rather than a record written as it happened. Every
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-09-14
+
+Two post-payment failures on current toolchains, both found in the sibling skill scroll-flight
+(one by an outside security review, one by CI's very first run) and both live here too.
+
+### Fixed
+
+- **The frame build no longer dies on ffmpeg 9.** FFmpeg 9.0 (August 2026) removed `-vsync`, and
+  `build-frames.mjs` passed `-vsync 0` at step 4 of 4 — so on any ffmpeg 9 that carries libwebp
+  (gyan.dev on Windows, `ffmpeg-full` on Homebrew) the doctor's encoder-listing check passed and
+  the build then aborted after the storyboard, every keyframe and every tween were billed. The
+  replacement `-fps_mode` exists only from 5.1 and Ubuntu 22.04's apt still ships 4.4, so the flag
+  is now chosen from the ffmpeg on PATH in one place (`scripts/ffmpeg-flags.mjs`), and `doctor.mjs`
+  proves the exact encode by running it on half a second of synthetic video — on top of the
+  listing check, which stays because it is the one that names a *missing* libwebp correctly.
+- **Homebrew's plain `ffmpeg` cannot encode WebP.** Since Homebrew split the formula (8.0+),
+  `brew install ffmpeg` is a slim build with no `webp` dependency; `ffmpeg-full` carries it.
+  Every macOS hint — the doctor's, the README's — said the former. They say `ffmpeg-full` now.
+
+### Tests
+
+The harness now follows a script's static imports when staging it (ported from scroll-flight),
+so a new module no longer has to be added to every call site's `also` list. A new suite pins the
+version→flag choice against real banners of every vintage, refuses any literal `-vsync` or
+`-fps_mode` in `build-frames.mjs`, and drives the doctor's trial encode with a stand-in binary.
+
 ## [1.3.0] — 2026-08-19
 
 ### Added

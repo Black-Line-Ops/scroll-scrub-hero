@@ -143,11 +143,44 @@ export async function download (url, dest) {
    `also` copies real sibling modules in unchanged. It is deliberately opt-in and deliberately not
    the default: the sandbox's emptiness is what proves storyboard.mjs survives a missing
    pricing.mjs, and a harness that always staged everything would quietly delete that guarantee. */
+/* Every `import ... from './x.mjs'` in a source file, so staging can follow them.
+
+   STATIC imports only, and that distinction is load-bearing: the modules a script cannot start
+   without are exactly the ones a staged copy must always have; the ones it imports dynamically
+   inside a try/catch are optional by construction, and tests exist to prove the scripts degrade
+   gracefully without them. pricing.mjs is that entire set. Following dynamic imports here would
+   silently hand pricing.mjs to those tests and turn them green against a script that had stopped
+   handling its absence. Ported from the sibling scroll-flight, where adding one module broke 31
+   tests at once because every staging site carried its own hand-maintained dependency list. */
+function staticLocalImports (source) {
+  return [...source.matchAll(/^import\s[^\n]*?from\s+'\.\/([\w.-]+\.mjs)'/gm)].map((m) => m[1])
+}
+
 export function stageScript (scriptName, stub = {}) {
   const { also = [], ...stubOpts } = stub
   const dir = tmpDir('ssh-stage-')
   fs.copyFileSync(path.join(SCRIPTS, scriptName), path.join(dir, scriptName))
-  for (const sibling of also) fs.copyFileSync(path.join(SCRIPTS, sibling), path.join(dir, sibling))
+
+  /* The script's own static import graph, transitively. `also` still works and is still how the
+     optional dynamic imports get staged; it just no longer has to be complete. kie.mjs is seeded
+     as seen: it is stubbed below, never copied. */
+  const seen = new Set([scriptName, 'kie.mjs'])
+  const queue = [scriptName]
+  while (queue.length) {
+    const from = path.join(SCRIPTS, queue.shift())
+    if (!fs.existsSync(from)) continue
+    for (const dep of staticLocalImports(fs.readFileSync(from, 'utf8'))) {
+      if (seen.has(dep)) continue
+      seen.add(dep)
+      fs.copyFileSync(path.join(SCRIPTS, dep), path.join(dir, dep))
+      queue.push(dep)
+    }
+  }
+
+  for (const sibling of also) {
+    if (sibling === 'kie.mjs') continue   /* the one file a sandbox must never get for real */
+    fs.copyFileSync(path.join(SCRIPTS, sibling), path.join(dir, sibling))
+  }
   fs.writeFileSync(path.join(dir, 'kie.mjs'), stubSource(stubOpts))
   return dir
 }

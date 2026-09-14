@@ -10,6 +10,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { trialEncode, ffmpegVersion, passthroughArgs } from './ffmpeg-flags.mjs'
 
 const ok = (m) => console.log(`  OK    ${m}`)
 const bad = (m, fix) => { console.log(`  MISS  ${m}`); if (fix) console.log(`        ${fix}`); return 1 }
@@ -103,7 +104,9 @@ for (const bin of ['ffmpeg', 'ffprobe']) {
     problems += bad(`${bin} not found on PATH`,
       os.platform() === 'win32'
         ? 'winget install Gyan.FFmpeg     (then reopen your terminal)'
-        : os.platform() === 'darwin' ? 'brew install ffmpeg' : 'sudo apt install ffmpeg')
+        /* ffmpeg-full, not ffmpeg: Homebrew's plain formula (8.0+) is a slim build with no
+           libwebp, and build-frames.mjs fails on it after the whole run is paid for. */
+        : os.platform() === 'darwin' ? 'brew install ffmpeg-full     (plain "ffmpeg" is Homebrew\'s slim build - no libwebp)' : 'sudo apt install ffmpeg')
   }
 }
 
@@ -129,11 +132,28 @@ if (haveFfmpeg) {
     const encoders = execFileSync('ffmpeg', ['-hide_banner', '-encoders'], { encoding: 'utf8' })
     if (/^\s*\S+\s+libwebp\s/m.test(encoders)) {
       ok('ffmpeg can encode WebP (libwebp)')
+      /* The listing says the encoder exists. Only running the exact command build-frames.mjs
+         runs says it WORKS: FFmpeg 9 removed `-vsync`, and a listing cannot see a removed option
+         - which is precisely how that failure reached step 4 of 4 in the sibling skill, after
+         every tween was paid for. Half a second of synthetic video, through the shipped arg list. */
+      const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scroll-scrub-hero-doctor-'))
+      try {
+        const n = trialEncode(probeDir)
+        const v = ffmpegVersion()
+        ok(`build-frames' exact encode works: ${passthroughArgs(v).join(' ')} on ffmpeg ${v ? `${v.major}.${v.minor}` : '(unparsed version)'}, ${n} trial frame${n === 1 ? '' : 's'}`)
+      } catch (e) {
+        problems += bad(`this ffmpeg lists libwebp but cannot run build-frames.mjs's encode - step 4 of 4 would fail AFTER the money is spent: ${e.message}`,
+          'the line above is the bug report; a current gyan.dev (Windows), ffmpeg-full (Homebrew) or apt build passes it')
+      } finally {
+        try { fs.rmSync(probeDir, { recursive: true, force: true }) } catch (_) {}
+      }
     } else {
       const install = os.platform() === 'win32'
         ? 'winget install Gyan.FFmpeg     (the Gyan builds carry libwebp; then reopen your terminal)'
         : os.platform() === 'darwin'
-          ? 'brew reinstall ffmpeg     (some bottles ship without it - if so, use the static build from evermeet.cx/ffmpeg)'
+          /* Not "reinstall": since Homebrew split the formula (8.0+), plain `ffmpeg` is a slim
+             build with no libwebp by design. Measured on CI's macOS runner with 9.0.1. */
+          ? 'brew install ffmpeg-full     (Homebrew\'s plain "ffmpeg" is a slim build with no libwebp; ffmpeg-full has it)'
           : 'sudo apt install ffmpeg     (distro builds vary - otherwise a static build from johnvansickle.com/ffmpeg)'
       const verify = os.platform() === 'win32'
         ? 'then check it took:  ffmpeg -hide_banner -encoders | findstr /i webp'

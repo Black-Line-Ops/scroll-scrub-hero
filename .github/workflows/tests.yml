@@ -1,0 +1,67 @@
+# The offline suite, on every push, with a REAL ffmpeg on every runner.
+#
+# The defects this exists to catch are environment drift: an ffmpeg without libwebp (Homebrew's
+# plain formula since 8.0), and an ffmpeg 9 that removed -vsync. Neither shows up on the machine
+# that wrote the code; both showed up on the first run of this same matrix in the sibling skill.
+# SSH_REQUIRE_FFMPEG=1 turns "ffmpeg unusable, tests skipped" from a footnote into a failure.
+#
+# ubuntu-22.04 is the one runner whose apt ffmpeg is 4.4 - the only place the `-vsync 0` branch
+# meets a real binary. macOS runs one Node version: its minutes bill at 10x, and what it proves
+# (Homebrew's ffmpeg-full accepts the encode) does not vary by Node.
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  node: 18 }
+          - { os: ubuntu-latest,  node: 20 }
+          - { os: ubuntu-latest,  node: 22 }
+          - { os: ubuntu-22.04,   node: 20 }
+          - { os: windows-latest, node: 20 }
+          - { os: macos-latest,   node: 20 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+
+      - name: Install ffmpeg (macOS)
+        if: runner.os == 'macOS'
+        # ffmpeg-full, not ffmpeg: Homebrew's plain formula (8.0+) has no libwebp.
+        run: brew install ffmpeg-full
+
+      - name: Install ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        # ffmpeg-full is the gyan.dev "full" build, which carries libwebp; plain "ffmpeg" may not
+        run: choco install ffmpeg-full -y --no-progress
+
+      - name: Which ffmpeg
+        shell: bash
+        run: |
+          ffmpeg -version | head -1
+          ffmpeg -hide_banner -encoders | grep -i webp || true
+
+      - name: Preflight (the doctor, no key - the trial encode is the point)
+        shell: bash
+        run: node scripts/doctor.mjs || true
+
+      - name: Test
+        shell: bash
+        env:
+          SSH_REQUIRE_FFMPEG: "1"
+        run: node test/run.mjs
