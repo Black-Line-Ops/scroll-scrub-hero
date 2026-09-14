@@ -36,6 +36,13 @@ so a new module no longer has to be added to every call site's `also` list. A ne
 version→flag choice against real banners of every vintage, refuses any literal `-vsync` or
 `-fps_mode` in `build-frames.mjs`, and drives the doctor's trial encode with a stand-in binary.
 
+A GitHub Actions matrix (Linux × Node 18/20/22, Ubuntu 22.04 for its ffmpeg 4.4, Windows, macOS —
+each with a real ffmpeg and `SSH_REQUIRE_FFMPEG=1`) now runs the suite on every push. Its first
+run found two things the machine that wrote the suite could not: the "never answers" balance test
+hung on an unref'd `AbortSignal.timeout` and cancelled every later test on Node 18–22 (Node 24
+kept the loop alive), and `tmpDir()` had to return the realpath because macOS resolves
+`/var/folders` to `/private/var/folders` when a staged script derives its own location.
+
 ## [1.3.0] — 2026-08-19
 
 ### Added
